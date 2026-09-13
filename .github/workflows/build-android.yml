@@ -1,10 +1,12 @@
 # Build Android APK for Catch a Monster (Godot 4.3+)
-# Trigger: manual dispatch or push tag v*
+# Trigger: push to any branch, push tag v*, or manual dispatch
 name: Build Android APK
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - '**'
     tags:
       - 'v*'
 
@@ -41,16 +43,13 @@ jobs:
         run: |
           mkdir -p ~/godot
           cd ~/godot
-          # Godot editor binary
           wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}/Godot_v${{ env.GODOT_VERSION }}_linux.x86_64.zip -O godot.zip
           unzip -q godot.zip
           chmod +x Godot_v${{ env.GODOT_VERSION }}_linux.x86_64
           mv Godot_v${{ env.GODOT_VERSION }}_linux.x86_64 godot
-          # Export templates
           wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}/Godot_v${{ env.GODOT_VERSION }}_export_templates.tpz -O templates.tpz
           mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}
           unzip -q templates.tpz -d /tmp/templates
-          # tpz contains templates/ folder
           if [ -d /tmp/templates/templates ]; then
             cp -r /tmp/templates/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}/
           else
@@ -79,7 +78,6 @@ jobs:
       - name: Export APK (debug)
         run: |
           cd ${{ env.PROJECT_PATH }}
-          # Headless export using the Android preset
           ~/godot/godot --headless --export-debug "Android" ./build/${{ env.EXPORT_NAME }}.apk || \
           ~/godot/godot --headless --export-release "Android" ./build/${{ env.EXPORT_NAME }}.apk || \
           echo "Export attempted – check export_presets.cfg and templates"
