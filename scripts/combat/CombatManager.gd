@@ -66,7 +66,7 @@ func _setup_player_team() -> void:
 		units_container.add_child(u)
 		var y_off = SLOT_OFFSETS[i] if i < SLOT_OFFSETS.size() else (i - 1) * 70.0
 		u.global_position = player_spawn.global_position + Vector2(0, y_off)
-		u.setup(mdata, Unit.Side.PLAYER, i)
+		u.setup(mdata, 0, i)  # 0 = Unit.Side.PLAYER (fix headless export enum bug)
 		u.died.connect(_on_player_unit_died)
 		player_units.append(u)
 	_update_skill_labels()
@@ -184,7 +184,7 @@ func _spawn_enemy() -> void:
 	var u = unit_scene.instantiate() as Unit
 	units_container.add_child(u)
 	u.global_position = spawn_point.global_position + Vector2(0, randf_range(-90, 90))
-	u.setup(mdata, Unit.Side.ENEMY)
+	u.setup(mdata, 1)  # 1 = Unit.Side.ENEMY (fix headless export enum bug)
 	u.died.connect(_on_enemy_died)
 	current_enemies.append(u)
 	enemies_spawned += 1
@@ -273,7 +273,6 @@ func _select_unit(idx: int) -> void:
 func _use_skill_manual(skill_idx: int) -> void:
 	if player_units.is_empty():
 		return
-	# Prefer selected unit, else nearest to enemies, else first alive
 	var chosen: Unit = null
 	if selected_unit_idx < player_units.size() and player_units[selected_unit_idx].is_alive:
 		chosen = player_units[selected_unit_idx]
@@ -340,7 +339,6 @@ func _toggle_auto() -> void:
 		hud.get_node("AutoBtn").text = "AUTO: ON" if GameManager.auto_battle else "AUTO: OFF"
 
 func _offer_catch(unit: Unit) -> void:
-	# Snapshot data before free
 	target_for_catch = unit.data.duplicate(true)
 	target_for_catch["last_hp"] = unit.hp
 	target_for_catch["last_max_hp"] = unit.max_hp
@@ -368,7 +366,6 @@ func _try_catch(ball_id: String) -> void:
 	var hp_ratio = float(target_for_catch.get("last_hp", 1)) / max(1, target_for_catch.get("last_max_hp", 1))
 	var rate = DataManager.calc_catch_rate(target_for_catch, ball_id, hp_ratio)
 	var success = randf() < rate
-	# Simple catch animation placeholder
 	_play_catch_fx(success)
 	if success:
 		var new_mon = DataManager.create_monster_instance(target_for_catch.id, target_for_catch.get("last_level", 1))
@@ -386,7 +383,6 @@ func _try_catch(ball_id: String) -> void:
 	SaveManager.save_game()
 
 func _play_catch_fx(success: bool) -> void:
-	# Placeholder visual: flash color on catch UI
 	if catch_ui:
 		var tween = create_tween()
 		var col = Color(0.3, 1.0, 0.4) if success else Color(1.0, 0.3, 0.3)
@@ -418,6 +414,4 @@ func _on_castle_body_entered(body: Node2D) -> void:
 	if body is Unit and body.side == Unit.Side.ENEMY and body.is_alive:
 		var dmg = 20 + body.level * 3
 		GameManager.damage_castle(dmg)
-		# Clear visual feedback
 		body.take_damage(99999)
-		# Optional: spawn damage number on castle
