@@ -9,7 +9,7 @@ signal attacked(target: Unit, damage: int, is_crit: bool)
 enum Side { PLAYER, ENEMY }
 
 @export var data: Dictionary = {}
-var side: Side = Side.ENEMY
+var side: int = Side.ENEMY  # FIX: dùng int thay vì Side để tránh lỗi headless export
 var max_hp: int = 100
 var hp: int = 100
 var atk: int = 10
@@ -36,7 +36,7 @@ var slot_index: int = 0
 const FRAME_W := 64
 const FRAME_H := 64
 
-func setup(monster_data: Dictionary, unit_side: Side, p_slot: int = 0) -> void:
+func setup(monster_data: Dictionary, unit_side: int, p_slot: int = 0) -> void:  # FIX: unit_side là int
 	data = monster_data.duplicate(true)
 	side = unit_side
 	slot_index = p_slot
@@ -88,7 +88,7 @@ func _load_sprite() -> void:
 		if side == Side.PLAYER:
 			sprite.scale = Vector2(1.2, 1.2)
 		else:
-			sprite.scale = Vector2(-1.0, 1.0)  # face right (enemies come from left)
+			sprite.scale = Vector2(-1.0, 1.0)
 	elif color_rect:
 		color_rect.visible = true
 		color_rect.color = data.get("color", Color(0.7, 0.7, 0.7))
@@ -96,7 +96,6 @@ func _load_sprite() -> void:
 func _setup_animations() -> void:
 	if not anim_player:
 		return
-	# Build animations from region frames if not already present
 	var lib = anim_player.get_animation_library("") if anim_player.has_animation_library("") else null
 	if lib == null:
 		lib = AnimationLibrary.new()
