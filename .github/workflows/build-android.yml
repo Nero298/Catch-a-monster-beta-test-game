@@ -10,7 +10,6 @@ on:
 
 env:
   GODOT_VERSION: 4.3-stable
-  GODOT_VERSION_DOTTED: 4.3.stable
   EXPORT_NAME: CatchAMonster
 
 jobs:
@@ -47,8 +46,9 @@ jobs:
             -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
+          echo "Keystore OK: $(ls -la ~/.android/debug.keystore)"
 
-      - name: Download Godot + Export Templates
+      - name: Download Godot
         run: |
           mkdir -p ~/godot
           cd ~/godot
@@ -56,16 +56,23 @@ jobs:
           unzip -q godot.zip
           chmod +x Godot_v${{ env.GODOT_VERSION }}_linux.x86_64
           mv Godot_v${{ env.GODOT_VERSION }}_linux.x86_64 godot
+          echo "Godot: $(~/godot/godot --version)"
+
+      - name: Download Export Templates
+        run: |
+          cd ~/godot
           wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}/Godot_v${{ env.GODOT_VERSION }}_export_templates.tpz -O templates.tpz
-          # ✅ Dùng GODOT_VERSION_DOTTED (4.3.stable) đúng với Godot yêu cầu
-          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}
-          unzip -q templates.tpz -d /tmp/templates
-          if [ -d /tmp/templates/templates ]; then
-            cp -r /tmp/templates/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}/
+          unzip -q templates.tpz -d /tmp/tpl
+          # Godot yêu cầu thư mục tên "4.3.stable" (dấu chấm, không phải gạch ngang)
+          TPLDIR="$HOME/.local/share/godot/export_templates/4.3.stable"
+          mkdir -p "$TPLDIR"
+          if [ -d /tmp/tpl/templates ]; then
+            cp -r /tmp/tpl/templates/* "$TPLDIR/"
           else
-            cp -r /tmp/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}/
+            cp -r /tmp/tpl/* "$TPLDIR/"
           fi
-          echo "Templates: $(ls ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}/)"
+          echo "Templates:"
+          ls "$TPLDIR/" | grep android || echo "WARN: no android template found!"
 
       - name: Configure Godot Android settings
         run: |
@@ -78,12 +85,21 @@ jobs:
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "editor_settings:"
+          cat ~/.config/godot/editor_settings-4.tres
+
+      - name: Check export_presets.cfg
+        run: |
+          echo "=== export_presets.cfg ==="
+          cat export_presets.cfg
 
       - name: Export APK
         run: |
           mkdir -p build
-          ~/godot/godot --headless --export-debug "Android" ./build/${{ env.EXPORT_NAME }}.apk 2>&1
-          ls -la build/
+          ~/godot/godot --headless --verbose --export-debug "Android" "$PWD/build/${{ env.EXPORT_NAME }}.apk" 2>&1
+          echo "=== build/ ==="
+          ls -la build/ || echo "EMPTY"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
