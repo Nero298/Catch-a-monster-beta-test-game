@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">
+  <rect width="128" height="128" fill="#2a2f4a"/>
+  <circle cx="64" cy="50" r="28" fill="#6c5ce7"/>
+  <circle cx="52" cy="42" r="6" fill="#fff"/>
+  <circle cx="76" cy="42" r="6" fill="#fff"/>
+  <ellipse cx="64" cy="58" rx="10" ry="6" fill="#a29bfe"/>
+  <rect x="40" y="80" width="48" height="30" rx="8" fill="#00b894"/>
+  <text x="64" y="118" text-anchor="middle" font-size="14" fill="#dfe6e9" font-family="sans-serif">CAM</text>
+</svg>

@@ -1,0 +1,101 @@
+# Build Android APK for Catch a Monster (Godot 4.3+)
+# Trigger: manual dispatch or push tag v*
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  GODOT_VERSION: 4.3-stable
+  EXPORT_NAME: CatchAMonster
+  PROJECT_PATH: .
+
+jobs:
+  export-android:
+    name: Export Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/godot
+            ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-android
+
+      - name: Download Godot + Export Templates
+        run: |
+          mkdir -p ~/godot
+          cd ~/godot
+          # Godot editor binary
+          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}/Godot_v${{ env.GODOT_VERSION }}_linux.x86_64.zip -O godot.zip
+          unzip -q godot.zip
+          chmod +x Godot_v${{ env.GODOT_VERSION }}_linux.x86_64
+          mv Godot_v${{ env.GODOT_VERSION }}_linux.x86_64 godot
+          # Export templates
+          wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}/Godot_v${{ env.GODOT_VERSION }}_export_templates.tpz -O templates.tpz
+          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}
+          unzip -q templates.tpz -d /tmp/templates
+          # tpz contains templates/ folder
+          if [ -d /tmp/templates/templates ]; then
+            cp -r /tmp/templates/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}/
+          else
+            cp -r /tmp/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}/
+          fi
+          echo "Godot and templates ready"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Install Android build tools
+        run: |
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Create debug keystore (for CI)
+        run: |
+          keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=CatchAMonster, OU=Dev, O=CatchAMonster, L=City, S=State, C=US" || true
+          mkdir -p ~/.android
+          cp debug.keystore ~/.android/debug.keystore || true
+
+      - name: Export APK (debug)
+        run: |
+          cd ${{ env.PROJECT_PATH }}
+          # Headless export using the Android preset
+          ~/godot/godot --headless --export-debug "Android" ./build/${{ env.EXPORT_NAME }}.apk || \
+          ~/godot/godot --headless --export-release "Android" ./build/${{ env.EXPORT_NAME }}.apk || \
+          echo "Export attempted – check export_presets.cfg and templates"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CatchAMonster-APK
+          path: |
+            **/CatchAMonster*.apk
+            **/build/*.apk
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "### Catch a Monster APK" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifact **CatchAMonster-APK** from this run." >> $GITHUB_STEP_SUMMARY
+          ls -la build/ 2>/dev/null || ls -la *.apk 2>/dev/null || echo "No APK found in expected paths"

@@ -1,0 +1,29 @@
+# Godot 4
+.godot/
+*.translation
+.import/
+export.cfg
+export_presets.cfg.bak
+
+# Build outputs
+build/
+*.apk
+*.aab
+*.ipa
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+
+# Android
+local.properties
+*.keystore
+!debug.keystore
+
+# Python / temp
+__pycache__/
+*.pyc
