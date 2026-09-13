@@ -10,8 +10,8 @@ on:
 
 env:
   GODOT_VERSION: 4.3-stable
+  GODOT_VERSION_DOTTED: 4.3.stable
   EXPORT_NAME: CatchAMonster
-  PROJECT_PATH: .
 
 jobs:
   export-android:
@@ -47,7 +47,6 @@ jobs:
             -keypass android \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
-          echo "Keystore created: $(ls -la ~/.android/debug.keystore)"
 
       - name: Download Godot + Export Templates
         run: |
@@ -57,16 +56,16 @@ jobs:
           unzip -q godot.zip
           chmod +x Godot_v${{ env.GODOT_VERSION }}_linux.x86_64
           mv Godot_v${{ env.GODOT_VERSION }}_linux.x86_64 godot
-          echo "Godot binary: $(~/godot/godot --version)"
           wget -q https://github.com/godotengine/godot/releases/download/${{ env.GODOT_VERSION }}/Godot_v${{ env.GODOT_VERSION }}_export_templates.tpz -O templates.tpz
-          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}
+          # ✅ Dùng GODOT_VERSION_DOTTED (4.3.stable) đúng với Godot yêu cầu
+          mkdir -p ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}
           unzip -q templates.tpz -d /tmp/templates
           if [ -d /tmp/templates/templates ]; then
-            cp -r /tmp/templates/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}/
+            cp -r /tmp/templates/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}/
           else
-            cp -r /tmp/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}/
+            cp -r /tmp/templates/* ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}/
           fi
-          echo "Templates: $(ls ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}/)"
+          echo "Templates: $(ls ~/.local/share/godot/export_templates/${{ env.GODOT_VERSION_DOTTED }}/)"
 
       - name: Configure Godot Android settings
         run: |
@@ -79,18 +78,12 @@ jobs:
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          cat ~/.config/godot/editor_settings-4.tres
 
       - name: Export APK
         run: |
           mkdir -p build
-          echo "=== export_presets.cfg ==="
-          cat export_presets.cfg
-          echo "=== Running Godot export ==="
-          ~/godot/godot --headless --verbose --export-debug "Android" ./build/${{ env.EXPORT_NAME }}.apk 2>&1
-          echo "=== Build folder contents ==="
-          ls -la build/ || echo "build/ is empty!"
+          ~/godot/godot --headless --export-debug "Android" ./build/${{ env.EXPORT_NAME }}.apk 2>&1
+          ls -la build/
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
