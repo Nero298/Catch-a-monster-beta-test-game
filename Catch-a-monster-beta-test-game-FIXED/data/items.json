@@ -1,0 +1,9 @@
+{
+  "fire_stone": {"id": "fire_stone", "name": "Fire Stone", "type": "evolution", "desc": "Evolves Fire monsters"},
+  "water_stone": {"id": "water_stone", "name": "Water Stone", "type": "evolution", "desc": "Evolves Water monsters"},
+  "leaf_stone": {"id": "leaf_stone", "name": "Leaf Stone", "type": "evolution", "desc": "Evolves Grass monsters"},
+  "dragon_scale": {"id": "dragon_scale", "name": "Dragon Scale", "type": "evolution", "desc": "Evolves Dragons"},
+  "meat": {"id": "meat", "name": "Monster Meat", "type": "food", "exp": 30, "stat_boost": {"hp": 2}, "desc": "Basic food"},
+  "premium_food": {"id": "premium_food", "name": "Premium Food", "type": "food", "exp": 80, "stat_boost": {"atk": 1, "def": 1}, "desc": "Better food"},
+  "boss_egg": {"id": "boss_egg", "name": "Boss Egg", "type": "egg", "desc": "Hatch a powerful boss monster"}
+}

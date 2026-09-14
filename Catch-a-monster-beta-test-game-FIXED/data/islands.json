@@ -1,0 +1,58 @@
+{
+  "forest": {
+    "id": "forest",
+    "name": "Forest Island",
+    "monsters": [
+      "slime",
+      "wolf",
+      "sproutusk"
+    ],
+    "bg_color": [
+      0.2,
+      0.35,
+      0.2
+    ]
+  },
+  "cave": {
+    "id": "cave",
+    "name": "Dark Cave",
+    "monsters": [
+      "bat",
+      "golem",
+      "slime"
+    ],
+    "bg_color": [
+      0.15,
+      0.12,
+      0.2
+    ]
+  },
+  "volcano": {
+    "id": "volcano",
+    "name": "Volcano Isle",
+    "monsters": [
+      "chamander",
+      "dragon_whelp",
+      "golem"
+    ],
+    "bg_color": [
+      0.35,
+      0.15,
+      0.1
+    ]
+  },
+  "ocean": {
+    "id": "ocean",
+    "name": "Ocean Reef",
+    "monsters": [
+      "glazadon",
+      "slime",
+      "bat"
+    ],
+    "bg_color": [
+      0.1,
+      0.25,
+      0.4
+    ]
+  }
+}

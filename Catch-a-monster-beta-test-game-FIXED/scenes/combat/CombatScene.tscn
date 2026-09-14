@@ -1,0 +1,339 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/CombatManager.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/backgrounds/forest_battlefield.png" id="2"]
+
+[sub_resource type="RectangleShape2D" id="RectCastle"]
+size = Vector2(40, 300)
+[sub_resource type="StyleBoxFlat" id="TopBar"]
+bg_color = Color(0.027, 0.063, 0.11, 0.90)
+corner_radius_bottom_left = 16
+corner_radius_bottom_right = 16
+border_width_bottom = 1
+border_color = Color(0.22, 0.42, 0.55, 1)
+content_margin_left = 14.0
+content_margin_right = 14.0
+[sub_resource type="StyleBoxFlat" id="PanelDark"]
+bg_color = Color(0.035, 0.07, 0.12, 0.94)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_left = 18
+corner_radius_bottom_right = 18
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.22, 0.4, 0.54, 1)
+content_margin_left = 16.0
+content_margin_right = 16.0
+content_margin_top = 12.0
+content_margin_bottom = 12.0
+[sub_resource type="StyleBoxFlat" id="Skill"]
+bg_color = Color(0.09, 0.18, 0.28, 0.96)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_left = 14
+corner_radius_bottom_right = 14
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.64, 0.82, 1)
+content_margin_left = 12.0
+content_margin_right = 12.0
+[sub_resource type="StyleBoxFlat" id="SkillPressed"]
+bg_color = Color(0.1, 0.34, 0.36, 0.98)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_left = 14
+corner_radius_bottom_right = 14
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.92, 0.82, 1)
+[sub_resource type="StyleBoxFlat" id="Result"]
+bg_color = Color(0.035, 0.07, 0.12, 0.97)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_left = 22
+corner_radius_bottom_right = 22
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.72, 0.76, 1)
+
+[node name="CombatScene" type="Node2D"]
+script = ExtResource("1")
+[node name="BG" type="TextureRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 6
+[node name="Ground" type="ColorRect" parent="."]
+visible = false
+offset_top = 520.0
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.25, 0.32, 0.2, 0.3)
+[node name="SpawnPoint" type="Marker2D" parent="."]
+position = Vector2(80, 400)
+[node name="PlayerSpawn" type="Marker2D" parent="."]
+position = Vector2(1050, 380)
+[node name="Castle" type="Area2D" parent="."]
+position = Vector2(1200, 400)
+collision_layer = 8
+collision_mask = 2
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Castle"]
+shape = SubResource("RectCastle")
+[node name="CastleVisual" type="ColorRect" parent="Castle"]
+offset_left = -30.0
+offset_top = -150.0
+offset_right = 30.0
+offset_bottom = 150.0
+color = Color(0.48, 0.43, 0.35, 1)
+[node name="Units" type="Node2D" parent="."]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+[node name="TopBar" type="Panel" parent="HUD"]
+offset_right = 1280.0
+offset_bottom = 86.0
+theme_override_styles/panel = SubResource("TopBar")
+[node name="CastleHPBar" type="ProgressBar" parent="HUD/TopBar"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 330.0
+offset_bottom = 48.0
+max_value = 1000.0
+value = 1000.0
+show_percentage = false
+[node name="CastleHPLabel" type="Label" parent="HUD/TopBar"]
+offset_left = 28.0
+offset_top = 19.0
+offset_right = 310.0
+offset_bottom = 46.0
+theme_override_font_sizes/font_size = 16
+text = "CASTLE 1000/1000"
+[node name="WaveLabel" type="Label" parent="HUD/TopBar"]
+offset_left = 450.0
+offset_top = 18.0
+offset_right = 830.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 24
+text = "WAVE 1 / 10"
+horizontal_alignment = 1
+[node name="GoldLabel" type="Label" parent="HUD/TopBar"]
+offset_left = 1030.0
+offset_top = 18.0
+offset_right = 1250.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 18
+text = "✦ GOLD 150"
+horizontal_alignment = 2
+
+[node name="UnitStrip" type="Panel" parent="HUD"]
+offset_left = 18.0
+offset_top = 100.0
+offset_right = 320.0
+offset_bottom = 292.0
+theme_override_styles/panel = SubResource("PanelDark")
+[node name="UnitTitle" type="Label" parent="HUD/UnitStrip"]
+offset_left = 12.0
+offset_top = 10.0
+offset_right = 280.0
+offset_bottom = 36.0
+theme_override_font_sizes/font_size = 14
+text = "ACTIVE TEAM"
+[node name="UnitSelect" type="VBoxContainer" parent="HUD/UnitStrip"]
+offset_left = 10.0
+offset_top = 42.0
+offset_right = 290.0
+offset_bottom = 176.0
+theme_override_constants/separation = 8
+[node name="Unit1" type="Button" parent="HUD/UnitStrip/UnitSelect"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "SLOT 1"
+[node name="Unit2" type="Button" parent="HUD/UnitStrip/UnitSelect"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "SLOT 2"
+[node name="Unit3" type="Button" parent="HUD/UnitStrip/UnitSelect"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "SLOT 3"
+
+[node name="Bottom" type="Panel" parent="HUD"]
+offset_top = 570.0
+offset_right = 1280.0
+offset_bottom = 720.0
+theme_override_styles/panel = SubResource("PanelDark")
+[node name="PauseBtn" type="Button" parent="HUD/Bottom"]
+offset_left = 22.0
+offset_top = 78.0
+offset_right = 130.0
+offset_bottom = 136.0
+theme_override_font_sizes/font_size = 15
+text = "Ⅱ PAUSE"
+[node name="AutoBtn" type="Button" parent="HUD/Bottom"]
+offset_left = 142.0
+offset_top = 78.0
+offset_right = 264.0
+offset_bottom = 136.0
+theme_override_font_sizes/font_size = 15
+text = "AUTO: OFF"
+[node name="SkillBar" type="HBoxContainer" parent="HUD/Bottom"]
+offset_left = 380.0
+offset_top = 72.0
+offset_right = 910.0
+offset_bottom = 142.0
+theme_override_constants/separation = 12
+alignment = 1
+[node name="Skill1" type="Button" parent="HUD/Bottom/SkillBar"]
+custom_minimum_size = Vector2(165, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Skill")
+theme_override_styles/pressed = SubResource("SkillPressed")
+text = "SKILL 1"
+[node name="Skill2" type="Button" parent="HUD/Bottom/SkillBar"]
+custom_minimum_size = Vector2(165, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Skill")
+theme_override_styles/pressed = SubResource("SkillPressed")
+text = "SKILL 2"
+[node name="Skill3" type="Button" parent="HUD/Bottom/SkillBar"]
+custom_minimum_size = Vector2(165, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Skill")
+theme_override_styles/pressed = SubResource("SkillPressed")
+text = "SKILL 3"
+
+[node name="CatchUI" type="Panel" parent="HUD"]
+visible = false
+offset_left = 360.0
+offset_top = 180.0
+offset_right = 920.0
+offset_bottom = 500.0
+theme_override_styles/panel = SubResource("PanelDark")
+[node name="InfoLabel" type="Label" parent="HUD/CatchUI"]
+offset_left = 26.0
+offset_top = 24.0
+offset_right = 534.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 19
+text = "CATCH OPPORTUNITY!"
+horizontal_alignment = 1
+[node name="TipLabel" type="Label" parent="HUD/CatchUI"]
+offset_left = 26.0
+offset_top = 92.0
+offset_right = 534.0
+offset_bottom = 122.0
+theme_override_font_sizes/font_size = 12
+text = "Lower HP = better catch chance • Ball level increases odds"
+horizontal_alignment = 1
+[node name="ThrowBasic" type="Button" parent="HUD/CatchUI"]
+offset_left = 24.0
+offset_top = 148.0
+offset_right = 184.0
+offset_bottom = 220.0
+theme_override_font_sizes/font_size = 16
+text = "BASIC"
+[node name="ThrowGreat" type="Button" parent="HUD/CatchUI"]
+offset_left = 200.0
+offset_top = 148.0
+offset_right = 360.0
+offset_bottom = 220.0
+theme_override_font_sizes/font_size = 16
+text = "GREAT"
+[node name="ThrowUltra" type="Button" parent="HUD/CatchUI"]
+offset_left = 376.0
+offset_top = 148.0
+offset_right = 536.0
+offset_bottom = 220.0
+theme_override_font_sizes/font_size = 16
+text = "ULTRA"
+[node name="CancelCatch" type="Button" parent="HUD/CatchUI"]
+offset_left = 200.0
+offset_top = 246.0
+offset_right = 360.0
+offset_bottom = 292.0
+text = "SKIP"
+
+[node name="ResultPanel" type="Panel" parent="HUD"]
+visible = false
+offset_left = 330.0
+offset_top = 142.0
+offset_right = 950.0
+offset_bottom = 548.0
+theme_override_styles/panel = SubResource("Result")
+[node name="ResultLabel" type="Label" parent="HUD/ResultPanel"]
+offset_left = 40.0
+offset_top = 30.0
+offset_right = 580.0
+offset_bottom = 95.0
+theme_override_font_sizes/font_size = 42
+text = "VICTORY!"
+horizontal_alignment = 1
+[node name="DetailLabel" type="Label" parent="HUD/ResultPanel"]
+offset_left = 44.0
+offset_top = 105.0
+offset_right = 576.0
+offset_bottom = 202.0
+theme_override_font_sizes/font_size = 17
+text = ""
+horizontal_alignment = 1
+[node name="RetryBtn" type="Button" parent="HUD/ResultPanel"]
+offset_left = 70.0
+offset_top = 240.0
+offset_right = 270.0
+offset_bottom = 306.0
+theme_override_font_sizes/font_size = 18
+text = "RETRY"
+[node name="MenuBtn" type="Button" parent="HUD/ResultPanel"]
+offset_left = 350.0
+offset_top = 240.0
+offset_right = 550.0
+offset_bottom = 306.0
+theme_override_font_sizes/font_size = 18
+text = "MAIN MENU"
+
+[node name="PauseMenu" type="Panel" parent="HUD"]
+visible = false
+offset_left = 415.0
+offset_top = 175.0
+offset_right = 865.0
+offset_bottom = 500.0
+theme_override_styles/panel = SubResource("PanelDark")
+[node name="Title" type="Label" parent="HUD/PauseMenu"]
+offset_left = 25.0
+offset_top = 18.0
+offset_right = 425.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 28
+text = "PAUSED"
+horizontal_alignment = 1
+[node name="ResumeBtn" type="Button" parent="HUD/PauseMenu"]
+offset_left = 55.0
+offset_top = 78.0
+offset_right = 395.0
+offset_bottom = 132.0
+text = "RESUME"
+[node name="RestartBtn" type="Button" parent="HUD/PauseMenu"]
+offset_left = 55.0
+offset_top = 148.0
+offset_right = 395.0
+offset_bottom = 202.0
+text = "RESTART"
+[node name="QuitBtn" type="Button" parent="HUD/PauseMenu"]
+offset_left = 55.0
+offset_top = 218.0
+offset_right = 395.0
+offset_bottom = 272.0
+text = "QUIT TO MENU"
+
+[connection signal="body_entered" from="Castle" to="." method="_on_castle_body_entered"]

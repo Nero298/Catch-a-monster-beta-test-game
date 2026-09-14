@@ -1,0 +1,208 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: 4.3-stable
+  EXPORT_NAME: CatchAMonster
+  ANDROID_API_LEVEL: '34'
+  ANDROID_BUILD_TOOLS: '34.0.0'
+  ANDROID_NDK: '23.2.8568313'
+  ANDROID_CMAKE: '3.10.2.4988404'
+  GODOT_TEMPLATES_VERSION: 4.3.stable
+
+jobs:
+  export-android:
+    name: Export Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Static project validation
+        shell: bash
+        run: python3 tools/validate_project.py
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Normalize Android SDK environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK_ROOT"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT"
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "cmdline-tools;latest" \
+            "platforms;android-${ANDROID_API_LEVEL}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "cmake;${ANDROID_CMAKE}" \
+            "ndk;${ANDROID_NDK}"
+
+      - name: Verify Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$ANDROID_SDK_ROOT/platform-tools"
+          test -d "$ANDROID_SDK_ROOT/platforms/android-${ANDROID_API_LEVEL}"
+          test -d "$ANDROID_SDK_ROOT/build-tools/${ANDROID_BUILD_TOOLS}"
+          test -d "$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK}"
+          test -d "$ANDROID_SDK_ROOT/cmake/${ANDROID_CMAKE}"
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          java -version
+          adb version
+
+      - name: Create CI debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          rm -f "$HOME/.android/debug.keystore" "$GITHUB_WORKSPACE/.ci-debug.keystore"
+          keytool -genkeypair -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          cp "$HOME/.android/debug.keystore" "$GITHUB_WORKSPACE/.ci-debug.keystore"
+
+      - name: Download Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/godot"
+          cd "$HOME/godot"
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip" -O godot.zip
+          unzip -q godot.zip
+          chmod +x "Godot_v${GODOT_VERSION}_linux.x86_64"
+          mv "Godot_v${GODOT_VERSION}_linux.x86_64" godot
+          ./godot --version
+
+      - name: Install Godot Android export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$HOME/godot"
+          wget -q "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz" -O templates.tpz
+          rm -rf /tmp/godot-templates
+          mkdir -p /tmp/godot-templates
+          unzip -q templates.tpz -d /tmp/godot-templates
+          TPLDIR="$HOME/.local/share/godot/export_templates/${GODOT_TEMPLATES_VERSION}"
+          mkdir -p "$TPLDIR"
+          if [ -d /tmp/godot-templates/templates ]; then
+            cp -a /tmp/godot-templates/templates/. "$TPLDIR/"
+          else
+            cp -a /tmp/godot-templates/. "$TPLDIR/"
+          fi
+          test -s "$TPLDIR/android_debug.apk"
+          test -s "$TPLDIR/android_release.apk"
+          ls -lh "$TPLDIR"/android_*.apk
+
+      - name: Configure Godot editor settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/debug_keystore = "$GITHUB_WORKSPACE/.ci-debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+          sed -n '1,80p' "$HOME/.config/godot/editor_settings-4.tres"
+
+      - name: Validate preset before export
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s project.godot
+          test -s export_presets.cfg
+          grep -q '^\[preset\.0\]$' export_presets.cfg
+          grep -q '^name="Android"$' export_presets.cfg
+          grep -q '^platform="Android"$' export_presets.cfg
+          grep -q '^package/unique_name="com.catchamonster.game"$' export_presets.cfg
+          grep -q '^version/code=3$' export_presets.cfg
+          grep -q '^version/name="0.2.3"$' export_presets.cfg
+
+      - name: Import project resources
+        shell: bash
+        run: |
+          set -o pipefail
+          "$HOME/godot/godot" --headless --path "$PWD" --editor --import --quit 2>&1 | tee import.log
+
+      - name: Export debug APK
+        shell: bash
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/.ci-debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          set -o pipefail
+          mkdir -p build
+          "$HOME/godot/godot" --headless --verbose --path "$PWD" \
+            --export-debug "Android" "$PWD/build/${EXPORT_NAME}.apk" 2>&1 | tee export.log
+
+      - name: Verify APK output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "build/${EXPORT_NAME}.apk"
+          file "build/${EXPORT_NAME}.apk"
+          ls -lh "build/${EXPORT_NAME}.apk"
+          sha256sum "build/${EXPORT_NAME}.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CatchAMonster-APK
+          path: build/${{ env.EXPORT_NAME }}.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload export logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CatchAMonster-build-logs
+          path: |
+            import.log
+            export.log
+            .godot/editor/project_metadata.cfg
+          if-no-files-found: ignore
+          retention-days: 7
