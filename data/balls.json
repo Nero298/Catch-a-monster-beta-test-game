@@ -1,5 +1,0 @@
-{
-  "basic": {"id": "basic", "name": "Basic Ball", "base_rate": 1.0, "cost": 50, "icon": "res://assets/sprites/ui/basic_ball.png"},
-  "great": {"id": "great", "name": "Great Ball", "base_rate": 1.5, "cost": 150, "icon": "res://assets/sprites/ui/great_ball.png"},
-  "ultra": {"id": "ultra", "name": "Ultra Ball", "base_rate": 2.2, "cost": 400, "icon": "res://assets/sprites/ui/ultra_ball.png"}
-}
