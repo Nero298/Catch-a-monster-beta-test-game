@@ -96,6 +96,33 @@ jobs:
           java -version
           adb version
 
+      - name: Create CI debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$HOME/.android"
+
+          rm -f \
+            "$HOME/.android/debug.keystore" \
+            "$GITHUB_WORKSPACE/.ci-debug.keystore"
+
+          keytool -genkeypair -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+          cp \
+            "$HOME/.android/debug.keystore" \
+            "$GITHUB_WORKSPACE/.ci-debug.keystore"
+
+          test -f "$GITHUB_WORKSPACE/.ci-debug.keystore"
+
       - name: Download Godot editor
         shell: bash
         run: |
@@ -112,7 +139,9 @@ jobs:
 
           chmod +x "Godot_v${GODOT_VERSION}_linux.x86_64"
 
-          mv "Godot_v${GODOT_VERSION}_linux.x86_64" godot
+          mv \
+            "Godot_v${GODOT_VERSION}_linux.x86_64" \
+            godot
 
           ./godot --version
 
@@ -160,12 +189,15 @@ jobs:
           [resource]
           export/android/java_sdk_path = "$JAVA_HOME"
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/debug_keystore = "$GITHUB_WORKSPACE/.ci-debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
           EOF
 
           sed -n '1,80p' \
             "$HOME/.config/godot/editor_settings-4.tres"
 
-      - name: Validate export preset
+      - name: Validate preset before export
         shell: bash
         run: |
           set -euo pipefail
@@ -177,9 +209,8 @@ jobs:
           grep -q '^name="Android"$' export_presets.cfg
           grep -q '^platform="Android"$' export_presets.cfg
           grep -q '^package/unique_name="com.catchamonster.game"$' export_presets.cfg
-
-          echo "Android export preset found:"
-          sed -n '1,100p' export_presets.cfg
+          grep -q '^version/code=3$' export_presets.cfg
+          grep -q '^version/name="0.2.3"$' export_presets.cfg
 
       - name: Import project resources
         shell: bash
@@ -199,27 +230,27 @@ jobs:
         run: |
           set -o pipefail
 
-          echo "========================================"
-          echo " GODOT ANDROID EXPORT CONFIGURATION"
-          echo "========================================"
+          echo "===== GODOT VERSION ====="
+          "$HOME/godot/godot" --version
 
-          "$HOME/godot/godot" \
-            --headless \
-            --verbose \
-            --path "$PWD" \
-            --editor \
-            --quit \
-            2>&1 | tee godot-check.log
+          echo "===== ANDROID SDK ====="
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
-          echo ""
-          echo "========================================"
-          echo " EXPORT PRESET"
-          echo "========================================"
+          echo "===== JAVA ====="
+          java -version
 
-          cat export_presets.cfg
+          echo "===== DEBUG KEYSTORE ====="
+          test -f "$GITHUB_WORKSPACE/.ci-debug.keystore"
+
+          echo "===== EXPORT PRESET ====="
+          grep -A30 '^\[preset\.0\.options\]' export_presets.cfg
 
       - name: Export debug APK
         shell: bash
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/.ci-debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           set -o pipefail
 
@@ -229,8 +260,7 @@ jobs:
             --headless \
             --verbose \
             --path "$PWD" \
-            --export-debug \
-            "Android" \
+            --export-debug "Android" \
             "$PWD/build/${EXPORT_NAME}.apk" \
             2>&1 | tee export.log
 
@@ -262,7 +292,6 @@ jobs:
           name: CatchAMonster-build-logs
           path: |
             import.log
-            godot-check.log
             export.log
             .godot/editor/project_metadata.cfg
           if-no-files-found: ignore
