@@ -1,32 +1,20 @@
 # Godot 4
 .godot/
 *.translation
-.import/
 export.cfg
-export_presets.cfg.bak
+*.tmp
+.import/
+*.import
 
-# Build outputs
+# Builds
 build/
 *.apk
 *.aab
-*.ipa
+*.zip
+!Catch-a-monster*.zip
 
-# OS / IDE
+# OS
 .DS_Store
 Thumbs.db
 *.swp
 *~
-.vscode/
-.idea/
-
-# Android
-local.properties
-*.keystore
-!debug.keystore
-
-# Python / temp
-__pycache__/
-*.pyc
-
-# CI temporary keystore
-.ci-debug.keystore
