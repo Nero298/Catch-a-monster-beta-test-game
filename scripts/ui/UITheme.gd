@@ -5,6 +5,7 @@ class_name UITheme
 const TAN := Color("#B89567")
 const TAN_DARK := Color("#96764F")
 const TAN_LIGHT := Color("#C7A879")
+const STONE := Color("#6F563B")
 const WHITE := Color.WHITE
 const BG := Color("#15100B")
 
