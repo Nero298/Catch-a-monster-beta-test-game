@@ -1,104 +1,180 @@
-extends Button
+extends Control
 class_name ShapeButton
-## Geometric UI button matching the 14-zone hub layout.
-## The fill stays in the Tan palette; the outline is drawn as a thick stone-like edge.
+## Custom clickable geometric button used by the hub/shop.
+## It deliberately avoids the default Button theme so the polygon and stone edge are always visible.
+
+signal pressed
+signal mouse_entered_shape
+signal mouse_exited_shape
 
 enum Shape { RECT, LEFT_SLOPE, RIGHT_SLOPE, QUAD, BATTLE }
 
 @export var shape: Shape = Shape.QUAD
+@export var text: String = "BUTTON"
 @export var fill_color := Color("#B89567")
-@export var border_color := Color("#6F563B")
-@export var highlight_color := Color("#C7A879")
-@export var pressed_color := Color("#96764F")
-@export var slant := 22.0
+@export var stone_dark := Color("#5F4933")
+@export var stone_mid := Color("#806446")
+@export var stone_light := Color("#D2B486")
+@export var hover_fill := Color("#C7A879")
+@export var pressed_fill := Color("#96764F")
+@export var font_size: int = 16
+@export var slant: float = 24.0
+
+var _hovered := false
+var _down := false
+var _label: Label
 
 func _ready() -> void:
-    flat = true
-    add_theme_color_override("font_color", Color.WHITE)
-    add_theme_color_override("font_hover_color", Color.WHITE)
-    add_theme_color_override("font_pressed_color", Color.WHITE)
-    add_theme_color_override("font_disabled_color", Color.WHITE)
-    add_theme_color_override("font_focus_color", Color.WHITE)
-    add_theme_constant_override("outline_size", 0)
-    mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-    alignment = HORIZONTAL_ALIGNMENT_CENTER
-    vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    mouse_filter = Control.MOUSE_FILTER_STOP
+    custom_minimum_size = Vector2(60, 40)
+    _label = Label.new()
+    _label.text = text
+    _label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    _label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    _label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    _label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    _label.add_theme_font_size_override("font_size", font_size)
+    _label.add_theme_color_override("font_color", Color.WHITE)
+    _label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.55))
+    _label.add_theme_constant_override("outline_size", 3)
+    add_child(_label)
+    queue_redraw()
+
+func set_text(value: String) -> void:
+    text = value
+    if is_instance_valid(_label):
+        _label.text = value
     queue_redraw()
 
 func _notification(what: int) -> void:
-    if what == NOTIFICATION_RESIZED or what == NOTIFICATION_MOUSE_ENTER or what == NOTIFICATION_MOUSE_EXIT:
+    if what == NOTIFICATION_RESIZED:
         queue_redraw()
 
-func _points() -> PackedVector2Array:
+func _gui_input(event: InputEvent) -> void:
+    if event is InputEventMouseMotion:
+        _hovered = _point_inside_polygon(get_local_mouse_position())
+        queue_redraw()
+    elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+        if event.pressed and _point_inside_polygon(event.position):
+            _down = true
+            queue_redraw()
+            accept_event()
+        elif not event.pressed:
+            var fire := _down and _point_inside_polygon(event.position)
+            _down = false
+            queue_redraw()
+            if fire and not disabled:
+                pressed.emit()
+                accept_event()
+
+var disabled: bool = false:
+
+func _on_mouse_enter() -> void:
+    _hovered = true
+    mouse_entered_shape.emit()
+    queue_redraw()
+
+func _on_mouse_exit() -> void:
+    _hovered = false
+    _down = false
+    mouse_exited_shape.emit()
+    queue_redraw()
+
+func _mouse_inside(_event: InputEvent) -> void:
+    pass
+
+func _points(margin: float = 0.0) -> PackedVector2Array:
     var s := size
-    var inset := 3.0
-    var k := clampf(slant, 8.0, minf(s.y * 0.42, s.x * 0.18))
-    var pts := PackedVector2Array()
+    var inset := margin
+    var k := clampf(slant, 8.0, minf(s.y * 0.42, s.x * 0.20))
     match shape:
         Shape.RECT:
-            pts = PackedVector2Array([
+            return PackedVector2Array([
                 Vector2(inset, inset), Vector2(s.x - inset, inset),
                 Vector2(s.x - inset, s.y - inset), Vector2(inset, s.y - inset)
             ])
         Shape.LEFT_SLOPE:
-            pts = PackedVector2Array([
-                Vector2(k, inset), Vector2(s.x - inset, inset),
-                Vector2(s.x - inset, s.y - inset), Vector2(inset + 1.0, s.y - inset)
+            return PackedVector2Array([
+                Vector2(k + inset, inset), Vector2(s.x - inset, inset),
+                Vector2(s.x - inset, s.y - inset), Vector2(inset, s.y - inset)
             ])
         Shape.RIGHT_SLOPE:
-            pts = PackedVector2Array([
-                Vector2(inset, inset), Vector2(s.x - k, inset),
+            return PackedVector2Array([
+                Vector2(inset, inset), Vector2(s.x - k - inset, inset),
                 Vector2(s.x - inset, s.y - inset), Vector2(inset, s.y - inset)
             ])
         Shape.BATTLE:
-            var top := minf(s.x * 0.20, 42.0)
-            var side := minf(s.x * 0.06, 20.0)
-            pts = PackedVector2Array([
-                Vector2(top, inset), Vector2(s.x - top, inset),
-                Vector2(s.x - side, s.y * 0.46),
-                Vector2(s.x * 0.73, s.y - inset),
-                Vector2(s.x * 0.27, s.y - inset),
-                Vector2(side, s.y * 0.46)
+            # Inverted trapezoid / pentagon, matching the supplied blueprint.
+            var top_w := s.x * 0.20
+            var lower_w := s.x * 0.08
+            return PackedVector2Array([
+                Vector2(top_w, inset), Vector2(s.x - top_w, inset),
+                Vector2(s.x - lower_w, s.y - inset), Vector2(lower_w, s.y - inset)
             ])
-        _:
-            pts = PackedVector2Array([
-                Vector2(k, inset), Vector2(s.x - k, inset),
+        Shape.QUAD:
+            return PackedVector2Array([
+                Vector2(k + inset, inset), Vector2(s.x - k - inset, inset),
                 Vector2(s.x - inset, s.y - inset), Vector2(inset, s.y - inset)
             ])
-    return pts
+    return PackedVector2Array()
+
+func _centroid(points: PackedVector2Array) -> Vector2:
+    var c := Vector2.ZERO
+    for p in points:
+        c += p
+    return c / max(1, points.size())
+
+func _scaled_points(points: PackedVector2Array, factor: float) -> PackedVector2Array:
+    var center := _centroid(points)
+    var out := PackedVector2Array()
+    for p in points:
+        out.append(center.lerp(p, factor))
+    return out
+
+func _point_inside_polygon(p: Vector2) -> bool:
+    var pts := _points(0.0)
+    if pts.size() < 3:
+        return false
+    var inside := false
+    var j := pts.size() - 1
+    for i in range(pts.size()):
+        var pi := pts[i]
+        var pj := pts[j]
+        if ((pi.y > p.y) != (pj.y > p.y)) and (p.x < (pj.x - pi.x) * (p.y - pi.y) / maxf(0.0001, pj.y - pi.y) + pi.x):
+            inside = not inside
+        j = i
+    return inside
 
 func _draw() -> void:
-    var pts := _points()
-    if pts.size() < 4:
+    if size.x <= 2.0 or size.y <= 2.0:
         return
-    var c := pressed_color if button_pressed else fill_color
-    if is_hovered() and not disabled:
-        c = c.lightened(0.06)
-    if disabled:
-        c = c.darkened(0.03)
-    draw_colored_polygon(pts, c)
+    var outer := _points(1.5)
+    var inner := _scaled_points(outer, 0.88)
+    var core := _scaled_points(outer, 0.81)
+    var fill := pressed_fill if _down else (hover_fill if _hovered else fill_color)
 
-    # Thick outer edge + a few short facets gives the requested stone-border feel
-    # without introducing another UI colour family.
-    var closed := PackedVector2Array(pts)
-    closed.append(pts[0])
-    draw_polyline(closed, border_color, 5.0, true)
-    var inner := PackedVector2Array()
-    for p in pts:
-        inner.append(p + Vector2(0, 1))
-    inner.append(inner[0])
-    draw_polyline(inner, highlight_color, 1.5, true)
+    # Large visible stone silhouette.
+    draw_colored_polygon(outer, stone_dark)
+    draw_colored_polygon(inner, stone_mid)
+    draw_colored_polygon(core, fill)
 
-    # Pixel-like stone facet breaks on the long edges.
-    for i in range(pts.size()):
-        var a: Vector2 = pts[i]
-        var b: Vector2 = pts[(i + 1) % pts.size()]
-        var d := b - a
-        var len := d.length()
-        if len < 70.0:
-            continue
-        var n := Vector2(-d.y, d.x).normalized()
-        var p := a.lerp(b, 0.38)
-        var q := a.lerp(b, 0.62)
-        draw_line(p + n * 1.5, p + n * 5.5, highlight_color, 2.0, true)
-        draw_line(q + n * 1.5, q + n * 4.0, border_color, 2.0, true)
+    # Uneven inner highlight and dark facets to make the border visibly read as stone.
+    var c := _centroid(outer)
+    for i in range(outer.size()):
+        var a := outer[i]
+        var b := outer[(i + 1) % outer.size()]
+        var q1 := a.lerp(b, 0.14)
+        var q2 := a.lerp(b, 0.30)
+        var q3 := a.lerp(b, 0.68)
+        var q4 := a.lerp(b, 0.84)
+        var normal := Vector2(-(b - a).y, (b - a).x).normalized()
+        var lit := stone_light if i % 2 == 0 else stone_dark
+        draw_line(q1 + normal * 1.0, q2 + normal * 2.8, lit, 2.0, true)
+        draw_line(q3 + normal * 1.0, q4 + normal * 2.2, stone_dark, 2.0, true)
+
+    # Small broken-stone chips at corners.
+    for i in range(outer.size()):
+        var p := outer[i]
+        var dir := (p - c).normalized()
+        var t := p - dir * 5.0
+        draw_line(t, t - dir * 6.0 + Vector2(-dir.y, dir.x) * 3.0, stone_light, 2.0, true)
