@@ -67,7 +67,7 @@ func _gui_input(event: InputEvent) -> void:
                 pressed.emit()
                 accept_event()
 
-var disabled: bool = false:
+var disabled: bool = false
 
 func _on_mouse_enter() -> void:
     _hovered = true
