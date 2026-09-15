@@ -32,6 +32,7 @@ const SLOT_OFFSETS := [0.0, -75.0, 75.0]
 
 func _ready() -> void:
 	unit_scene = preload("res://scenes/combat/Unit.tscn")
+	_configure_playfield()
 	GameManager.start_game()
 	gold_earned_this_run = 0
 	monsters_caught_this_run.clear()
@@ -51,6 +52,49 @@ func _ready() -> void:
 		castle.body_entered.connect(_on_castle_body_entered)
 	AudioManager.play_bgm("combat")
 
+func _configure_playfield() -> void:
+	var view := get_viewport_rect().size
+	if view.x <= 10 or view.y <= 10:
+		view = Vector2(1280, 720)
+	spawn_point.position = Vector2(view.x - 100.0, view.y * 0.55)
+	player_spawn.position = Vector2(max(150.0, view.x * 0.22), view.y * 0.55)
+	castle.position = Vector2(56.0, view.y * 0.55)
+	var bg := get_node_or_null("BG") as Control
+	if bg:
+		bg.position = Vector2.ZERO
+		bg.size = view
+	var shade := get_node_or_null("Shade") as Control
+	if shade:
+		shade.position = Vector2.ZERO
+		shade.size = view
+	var ground := get_node_or_null("Ground") as Control
+	if ground:
+		ground.position = Vector2(0, view.y * 0.73)
+		ground.size = Vector2(view.x, view.y * 0.27)
+	# HUD spans the real viewport; this removes the dead dark strip on wide phones.
+	var top_bar := hud.get_node_or_null("TopBar") as Control
+	if top_bar:
+		top_bar.position = Vector2.ZERO
+		top_bar.size = Vector2(view.x, 76.0)
+		var wave := top_bar.get_node_or_null("WaveLabel") as Control
+		if wave:
+			wave.position.x = max(330.0, view.x * 0.33)
+			wave.size.x = max(320.0, view.x * 0.34)
+		var gold := top_bar.get_node_or_null("GoldLabel") as Control
+		if gold:
+			gold.position.x = max(760.0, view.x - 270.0)
+			gold.size.x = 245.0
+	var bottom := hud.get_node_or_null("Bottom") as Control
+	if bottom:
+		bottom.position = Vector2.ZERO
+		bottom.position.y = view.y - 140.0
+		bottom.size = Vector2(view.x, 140.0)
+		var skills := bottom.get_node_or_null("SkillBar") as Control
+		if skills:
+			skills.position.x = max(330.0, view.x * 0.28)
+			skills.position.y = 48.0
+			skills.size.x = max(620.0, view.x - skills.position.x - 28.0)
+
 func _setup_player_team() -> void:
 	var team = GameManager.player_team
 	if team.is_empty() and not GameManager.owned_monsters.is_empty():
@@ -58,6 +102,14 @@ func _setup_player_team() -> void:
 		for i in range(mini(3, GameManager.owned_monsters.size())):
 			team.append(GameManager.owned_monsters[i])
 		GameManager.player_team = team
+	# Never allow a blank battle when a starter/owned monster exists.
+	if team.is_empty() and GameManager.has_chosen_starter:
+		var starter := DataManager.create_monster_instance("sproutusk", 5)
+		if not starter.is_empty():
+			GameManager.owned_monsters.append(starter.duplicate(true))
+			GameManager.player_team = [starter.duplicate(true)]
+			team = GameManager.player_team
+			SaveManager.save_game()
 	player_units.clear()
 	for i in range(team.size()):
 		if i >= 3:
@@ -175,7 +227,7 @@ func _start_next_wave() -> void:
 		enemies_to_spawn = int((4 + GameManager.current_wave) * diff_mult)
 		spawn_interval = max(1.3, 3.2 - GameManager.current_wave * 0.12)
 	is_spawning = true
-	wave_timer = 0.4
+	wave_timer = 0.05
 	_update_wave_label()
 
 func _difficulty_mult() -> float:
@@ -203,7 +255,8 @@ func _spawn_enemy() -> void:
 	mdata.atk = int(mdata.atk * (0.9 + mult * 0.15))
 	var u = unit_scene.instantiate() as Unit
 	units_container.add_child(u)
-	u.global_position = spawn_point.global_position + Vector2(0, randf_range(-90, 90))
+	_configure_playfield()
+	u.global_position = spawn_point.global_position + Vector2(0, randf_range(-65, 65))
 	u.setup(mdata, 1)  # 1 = Unit.Side.ENEMY (fix headless export enum bug)
 	u.died.connect(_on_enemy_died)
 	current_enemies.append(u)
@@ -388,24 +441,21 @@ func _update_skill_labels() -> void:
 
 func _toggle_pause() -> void:
 	if GameManager.current_state == GameManager.GameState.PLAYING:
-		# Ensure pause overlay still receives input while tree is paused
-		if hud.has_node("PauseMenu"):
-			var pm = hud.get_node("PauseMenu")
+		var pm := hud.get_node_or_null("PauseMenu")
+		if pm:
 			pm.process_mode = Node.PROCESS_MODE_ALWAYS
 			pm.visible = true
-		if hud:
-			hud.process_mode = Node.PROCESS_MODE_ALWAYS
-		GameManager.pause_game()
+			pm.z_index = 100
+		get_tree().paused = true
+		GameManager.current_state = GameManager.GameState.PAUSED
 	else:
 		_resume_from_pause()
 
 func _resume_from_pause() -> void:
-	GameManager.resume_game()
+	get_tree().paused = false
+	GameManager.current_state = GameManager.GameState.PLAYING
 	if hud.has_node("PauseMenu"):
 		hud.get_node("PauseMenu").visible = false
-	# Restore normal process so combat ticks again
-	if hud:
-		hud.process_mode = Node.PROCESS_MODE_INHERIT
 
 func _toggle_auto() -> void:
 	GameManager.auto_battle = not GameManager.auto_battle

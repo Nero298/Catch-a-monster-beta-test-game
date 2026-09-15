@@ -105,7 +105,7 @@ func _load_sprite() -> void:
 		sprite.visible = true
 		sprite.centered = true
 		# Scale to readable size on mobile
-		var target_h := 72.0
+		var target_h := 96.0
 		var sy := target_h / max(1.0, float(tex.get_height() if not is_sheet else FRAME_H))
 		var sx := sy
 		if side == Side.PLAYER:
