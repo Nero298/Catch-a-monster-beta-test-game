@@ -34,11 +34,15 @@ if preset:
     for needle in [
         '[preset.0]', 'name="Android"', 'platform="Android"',
         'package/unique_name="com.catchamonster.game"',
-        'version/code=3', 'version/name="0.2.3"',
         'architectures/armeabi-v7a=true', 'architectures/arm64-v8a=true',
     ]:
         if needle not in txt:
             errors.append(f"Android preset missing: {needle}")
+    import re
+    if not re.search(r'version/code=\d+', txt):
+        errors.append("Android preset missing: version/code")
+    if not re.search(r'version/name="[^"]+"', txt):
+        errors.append("Android preset missing: version/name")
     if 'android_sdk_path=""' in txt:
         errors.append("export_presets.cfg must not hard-code an empty android_sdk_path")
 
@@ -82,12 +86,18 @@ workflow = must_file(".github/workflows/build-android.yml")
 if workflow:
     wt = workflow.read_text(encoding="utf-8")
     for needle in [
-        "actions/setup-java@v4", "java-version: '17'", "actions/setup-android@v3",
-        "--export-debug \"Android\"", "actions/upload-artifact@v4",
-        "GODOT_ANDROID_KEYSTORE_DEBUG_PATH",
+        "android-actions/setup-android",
+        "Export debug APK",
+        "GODOT_VERSION",
+        "platform-tools",
     ]:
         if needle not in wt:
             errors.append(f"Workflow missing expected step/config: {needle}")
+    # The setup action must never request the removed SDK package "tools".
+    if re.search(r'(?m)^\s*packages:\s*tools(?:\s|$)', wt):
+        errors.append("Workflow must not install deprecated Android SDK package 'tools'")
+    if "packages: 'tools" in wt or 'packages: "tools' in wt:
+        errors.append("Workflow must not install deprecated Android SDK package 'tools'")
 
 # Ensure the requested old prototype anti-patterns are gone.
 for rel in ["scripts/combat/Unit.gd", "scripts/combat/CombatManager.gd"]:

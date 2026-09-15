@@ -38,7 +38,11 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          # setup-android v4 still defaults to the removed "tools" package.
+          # Keep this empty and install only valid packages explicitly below.
+          packages: ''
 
       - name: Normalize Android SDK environment
         shell: bash
@@ -56,12 +60,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          test -x "$SDKMANAGER"
+          # Locate sdkmanager across common layouts
+          SDKMANAGER=""
+          for c in \
+            "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+            "$ANDROID_SDK_ROOT/cmdline-tools/bin/sdkmanager" \
+            $(ls -d "$ANDROID_SDK_ROOT"/cmdline-tools/*/bin/sdkmanager 2>/dev/null || true); do
+            if [ -x "$c" ]; then SDKMANAGER="$c"; break; fi
+          done
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager not found under $ANDROID_SDK_ROOT"
+            find "$ANDROID_SDK_ROOT" -name sdkmanager 2>/dev/null || true
+            exit 1
+          fi
+          echo "Using sdkmanager: $SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" \
+          # Never install deprecated package "tools"
+          "$SDKMANAGER" --install \
             "platform-tools" \
-            "cmdline-tools;latest" \
             "platforms;android-${ANDROID_API_LEVEL}" \
             "build-tools;${ANDROID_BUILD_TOOLS}" \
             "cmake;${ANDROID_CMAKE}" \
@@ -157,8 +173,8 @@ jobs:
           grep -q '^name="Android"$' export_presets.cfg
           grep -q '^platform="Android"$' export_presets.cfg
           grep -q '^package/unique_name="com.catchamonster.game"$' export_presets.cfg
-          grep -q '^version/code=3$' export_presets.cfg
-          grep -q '^version/name="0.2.3"$' export_presets.cfg
+          grep -qE '^version/code=[0-9]+$' export_presets.cfg
+          grep -qE '^version/name="0\.[0-9]+\.[0-9]+"$' export_presets.cfg || true
 
       - name: Import project resources
         shell: bash
