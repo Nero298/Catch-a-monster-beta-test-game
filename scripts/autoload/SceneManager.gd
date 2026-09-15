@@ -12,7 +12,8 @@ func go_starter_select() -> void:
 	change_scene("res://scenes/menus/StarterSelect.tscn")
 
 func go_mode_select() -> void:
-	change_scene("res://scenes/menus/ModeSelect.tscn")
+	# Legacy entry point: the old mode-select screen is retired. Return to the main hub.
+	go_main_menu()
 
 func go_combat() -> void:
 	change_scene("res://scenes/combat/CombatScene.tscn")

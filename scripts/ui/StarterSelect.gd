@@ -1,63 +1,84 @@
 extends Control
+## First-run starter selection, using the same tan UI language.
 
-@onready var container: HBoxContainer = $HBox
-@onready var confirm_btn: Button = $ConfirmBtn
-@onready var desc_label: Label = $DescLabel
-
-var selected_id: String = ""
+const BG_TEXTURE := "res://assets/sprites/backgrounds/forest_battlefield.png"
+var container: HBoxContainer
+var confirm_btn: Button
+var desc_label: Label
+var selected_id := ""
 var starter_ids: Array = []
 
 func _ready() -> void:
-	starter_ids = DataManager.get_starters()
-	confirm_btn.disabled = true
-	confirm_btn.pressed.connect(_on_confirm)
-	_build_cards()
+    _build()
+    starter_ids = DataManager.get_starters()
+    _build_cards()
+
+func _build() -> void:
+    var bg := TextureRect.new()
+    bg.texture = load(BG_TEXTURE) if ResourceLoader.exists(BG_TEXTURE) else null
+    bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+    bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    add_child(bg)
+    var shade := ColorRect.new()
+    shade.color = Color(0.05, 0.035, 0.02, 0.46)
+    shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    add_child(shade)
+    var margin := MarginContainer.new()
+    margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    margin.add_theme_constant_override("margin_left", 30)
+    margin.add_theme_constant_override("margin_right", 30)
+    margin.add_theme_constant_override("margin_top", 24)
+    margin.add_theme_constant_override("margin_bottom", 24)
+    add_child(margin)
+    var root := VBoxContainer.new()
+    root.add_theme_constant_override("separation", 12)
+    margin.add_child(root)
+    root.add_child(UITheme.label("CHOOSE YOUR STARTER", 30))
+    desc_label = UITheme.label("Select one starter monster", 14)
+    root.add_child(desc_label)
+    container = HBoxContainer.new()
+    container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    container.alignment = BoxContainer.ALIGNMENT_CENTER
+    container.add_theme_constant_override("separation", 18)
+    root.add_child(container)
+    confirm_btn = UITheme.button("CONFIRM", Vector2(180, 52), 18)
+    confirm_btn.disabled = true
+    confirm_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+    confirm_btn.pressed.connect(_on_confirm)
+    root.add_child(confirm_btn)
 
 func _build_cards() -> void:
-	for child in container.get_children():
-		child.queue_free()
-	for id in starter_ids:
-		var m = DataManager.monsters[id]
-		var vbox = VBoxContainer.new()
-		vbox.custom_minimum_size = Vector2(220, 300)
-		# Icon
-		var tex_rect = TextureRect.new()
-		tex_rect.custom_minimum_size = Vector2(96, 96)
-		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		var icon_path = m.get("icon", m.get("sprite", ""))
-		if icon_path and ResourceLoader.exists(icon_path):
-			tex_rect.texture = load(icon_path)
-		vbox.add_child(tex_rect)
-		# Button
-		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(200, 120)
-		btn.text = "%s\n%s | Rank %s\nHP %d  ATK %d  DEF %d  SPD %d" % [m.name, m.element, m.rank, m.base_hp, m.base_atk, m.base_def, m.base_spd]
-		btn.add_theme_font_size_override("font_size", 16)
-		var style = StyleBoxFlat.new()
-		var col = m.color if m.color is Color else Color(0.3, 0.3, 0.35)
-		style.bg_color = col.darkened(0.35)
-		style.set_corner_radius_all(10)
-		btn.add_theme_stylebox_override("normal", style)
-		btn.pressed.connect(_on_select.bind(id, m))
-		vbox.add_child(btn)
-		container.add_child(vbox)
+    for c in container.get_children(): c.queue_free()
+    for id in starter_ids:
+        var m: Dictionary = DataManager.monsters[id]
+        var card := PanelContainer.new()
+        card.custom_minimum_size = Vector2(260, 340)
+        card.add_theme_stylebox_override("panel", UITheme.panel_tan(0.92))
+        container.add_child(card)
+        var v := VBoxContainer.new()
+        v.add_theme_constant_override("separation", 8)
+        card.add_child(v)
+        var tex := TextureRect.new()
+        tex.custom_minimum_size = Vector2(130, 130)
+        tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        var path := str(m.get("icon", ""))
+        if ResourceLoader.exists(path): tex.texture = load(path)
+        v.add_child(tex)
+        v.add_child(UITheme.label(str(m.get("name", "Monster")), 20))
+        v.add_child(UITheme.label("RANK %s" % m.get("rank", "E"), 13))
+        var choose := UITheme.button("SELECT", Vector2(160, 46), 15)
+        choose.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+        choose.pressed.connect(_on_select.bind(id, m))
+        v.add_child(choose)
 
 func _on_select(id: String, m: Dictionary) -> void:
-	selected_id = id
-	confirm_btn.disabled = false
-	var sk_names: Array = []
-	for sid in m.get("skills", []):
-		var sk = DataManager.get_skill(sid)
-		sk_names.append(sk.get("name", sid) if sk else sid)
-	desc_label.text = "%s\n\nHP %d · ATK %d · DEF %d · SPD %d\nSkills: %s" % [
-		m.get("description", ""), m.base_hp, m.base_atk, m.base_def, m.base_spd, ", ".join(sk_names)
-	]
-	AudioManager.play_sfx("button")
-
+    selected_id = id
+    confirm_btn.disabled = false
+    desc_label.text = "%s  |  HP %d  ATK %d  DEF %d  SPD %d" % [m.get("description", ""), m.get("base_hp", 0), m.get("base_atk", 0), m.get("base_def", 0), m.get("base_spd", 0)]
+    AudioManager.play_sfx("button")
 func _on_confirm() -> void:
-	if selected_id == "":
-		return
-	AudioManager.play_sfx("button")
-	GameManager.set_starter(selected_id)
-	SceneManager.go_main_menu()
+    if selected_id.is_empty(): return
+    GameManager.set_starter(selected_id)
+    SceneManager.go_main_menu()

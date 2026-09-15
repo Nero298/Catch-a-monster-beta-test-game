@@ -67,9 +67,11 @@ func _setup_player_team() -> void:
 		units_container.add_child(u)
 		var y_off = SLOT_OFFSETS[i] if i < SLOT_OFFSETS.size() else (i - 1) * 70.0
 		u.global_position = player_spawn.global_position + Vector2(0, y_off)
-		u.setup(mdata, 0, i)  # 0 = Unit.Side.PLAYER (fix headless export enum bug)
+		u.setup(mdata, 0, i)
 		u.died.connect(_on_player_unit_died)
+		u.hp_changed.connect(func(_cur: int, _max_hp: int): _sync_castle_hp_from_team())
 		player_units.append(u)
+	_sync_castle_hp_from_team()
 	_refresh_team_slot_labels()
 	_update_skill_labels()
 
@@ -226,8 +228,21 @@ func _on_enemy_died(unit: Unit) -> void:
 
 func _on_player_unit_died(unit: Unit) -> void:
 	player_units.erase(unit)
+	_sync_castle_hp_from_team()
 	if player_units.is_empty():
 		GameManager.game_over.emit(false)
+
+func _sync_castle_hp_from_team() -> void:
+	var max_total := 0
+	var cur_total := 0
+	for u in player_units:
+		if is_instance_valid(u):
+			max_total += int(u.max_hp)
+			cur_total += int(u.hp)
+	if max_total > 0:
+		GameManager.castle_max_hp = max_total
+		GameManager.castle_hp = cur_total
+		GameManager.castle_hp_changed.emit(GameManager.castle_hp, GameManager.castle_max_hp)
 
 func _on_wave_cleared() -> void:
 	if wave_transitioning:
@@ -473,7 +488,7 @@ func _on_castle_hp(cur: int, mx: int) -> void:
 		hud.get_node("TopBar/CastleHPBar").max_value = mx
 		hud.get_node("TopBar/CastleHPBar").value = cur
 	if hud.has_node("TopBar/CastleHPLabel"):
-		hud.get_node("TopBar/CastleHPLabel").text = "Base %d/%d" % [cur, mx]
+		hud.get_node("TopBar/CastleHPLabel").text = "CASTLE %d/%d" % [cur, mx]
 
 func _on_gold_changed(g: int) -> void:
 	if hud.has_node("TopBar/GoldLabel"):
@@ -486,6 +501,16 @@ func _update_wave_label() -> void:
 
 func _on_castle_body_entered(body: Node2D) -> void:
 	if body is Unit and body.side == Unit.Side.ENEMY and body.is_alive:
-		var dmg = 20 + body.level * 3
-		GameManager.damage_castle(dmg)
+		var dmg := 20 + body.level * 3
+		# Castle HP is the aggregate HP of the three equipped monsters, so a leak
+		# damages the team rather than a separate 1000-HP base.
+		var target: Unit = null
+		for u in player_units:
+			if is_instance_valid(u) and u.is_alive:
+				target = u
+				break
+		if target:
+			target.take_damage(dmg, body)
+		else:
+			GameManager.game_over.emit(false)
 		body.take_damage(99999)

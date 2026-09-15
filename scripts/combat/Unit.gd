@@ -39,10 +39,12 @@ var slot_index: int = 0
 const FRAME_W := 64
 const FRAME_H := 64
 
-func setup(monster_data: Dictionary, unit_side: int, p_slot: int = 0) -> void:  # FIX: unit_side là int
+func setup(monster_data: Dictionary, unit_side: int, p_slot: int = 0) -> void:  # unit_side is int for export-safe builds
 	data = monster_data.duplicate(true)
 	side = unit_side
 	slot_index = p_slot
+	z_index = 20
+	visible = true
 	level = data.get("level", 1)
 	max_hp = data.get("max_hp", 100)
 	hp = data.get("hp", max_hp)
@@ -64,9 +66,12 @@ func setup(monster_data: Dictionary, unit_side: int, p_slot: int = 0) -> void:  
 		name_label.text = data.get("name", "???") + " Lv." + str(level)
 	if name_tag:
 		name_tag.text = data.get("name", "?").substr(0, 8)
-	_play_anim("spawn")
+	if anim_player and anim_player.has_animation("spawn"):
+		_play_anim("spawn")
 	if anim_player and anim_player.has_animation("idle"):
 		anim_player.queue("idle")
+	if visual:
+		visual.modulate = Color.WHITE
 
 func _setup_collision_layers() -> void:
 	if side == Side.PLAYER:
@@ -84,6 +89,9 @@ func _load_sprite() -> void:
 		path = DataManager.get_sprite_path(data.get("id", "slime"))
 	if color_rect:
 		color_rect.visible = false
+	if visual:
+		visual.visible = true
+		visual.modulate = Color.WHITE
 	if sprite and ResourceLoader.exists(path):
 		var tex: Texture2D = load(path)
 		sprite.texture = tex

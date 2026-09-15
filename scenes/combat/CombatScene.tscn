@@ -1,68 +1,63 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/CombatManager.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/backgrounds/forest_battlefield.png" id="2"]
 
 [sub_resource type="RectangleShape2D" id="RectCastle"]
-size = Vector2(40, 300)
-[sub_resource type="StyleBoxFlat" id="TopBar"]
-bg_color = Color(0.027, 0.063, 0.11, 0.90)
-corner_radius_bottom_left = 16
-corner_radius_bottom_right = 16
-border_width_bottom = 1
-border_color = Color(0.22, 0.42, 0.55, 1)
-content_margin_left = 14.0
-content_margin_right = 14.0
-[sub_resource type="StyleBoxFlat" id="PanelDark"]
-bg_color = Color(0.035, 0.07, 0.12, 0.94)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_left = 18
-corner_radius_bottom_right = 18
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.22, 0.4, 0.54, 1)
-content_margin_left = 16.0
-content_margin_right = 16.0
-content_margin_top = 12.0
-content_margin_bottom = 12.0
-[sub_resource type="StyleBoxFlat" id="Skill"]
-bg_color = Color(0.09, 0.18, 0.28, 0.96)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_left = 14
-corner_radius_bottom_right = 14
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.35, 0.64, 0.82, 1)
-content_margin_left = 12.0
-content_margin_right = 12.0
-[sub_resource type="StyleBoxFlat" id="SkillPressed"]
-bg_color = Color(0.1, 0.34, 0.36, 0.98)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_left = 14
-corner_radius_bottom_right = 14
+size = Vector2(44, 330)
+
+[sub_resource type="StyleBoxFlat" id="TanPanel"]
+bg_color = Color(0.721569, 0.584314, 0.403922, 0.94)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.721569, 0.584314, 0.403922, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="TanButton"]
+bg_color = Color(0.721569, 0.584314, 0.403922, 0.98)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.55, 0.92, 0.82, 1)
-[sub_resource type="StyleBoxFlat" id="Result"]
-bg_color = Color(0.035, 0.07, 0.12, 0.97)
-corner_radius_top_left = 22
-corner_radius_top_right = 22
-corner_radius_bottom_left = 22
-corner_radius_bottom_right = 22
+border_color = Color(0.721569, 0.584314, 0.403922, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="TanPressed"]
+bg_color = Color(0.588235, 0.462745, 0.309804, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.36, 0.72, 0.76, 1)
+border_color = Color(0.721569, 0.584314, 0.403922, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="BarBG"]
+bg_color = Color(0.19, 0.14, 0.10, 0.9)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+[sub_resource type="StyleBoxFlat" id="BarFill"]
+bg_color = Color(0.721569, 0.584314, 0.403922, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [node name="CombatScene" type="Node2D"]
 script = ExtResource("1")
@@ -72,18 +67,23 @@ offset_bottom = 720.0
 texture = ExtResource("2")
 expand_mode = 1
 stretch_mode = 6
-[node name="Ground" type="ColorRect" parent="."]
-visible = false
-offset_top = 520.0
+[node name="Shade" type="ColorRect" parent="."]
 offset_right = 1280.0
 offset_bottom = 720.0
-color = Color(0.25, 0.32, 0.2, 0.3)
+color = Color(0.05, 0.035, 0.02, 0.18)
+mouse_filter = 2
+[node name="Ground" type="ColorRect" parent="."]
+offset_top = 525.0
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.10, 0.07, 0.04, 0.18)
+mouse_filter = 2
 [node name="SpawnPoint" type="Marker2D" parent="."]
-position = Vector2(1180, 400)
+position = Vector2(1160, 395)
 [node name="PlayerSpawn" type="Marker2D" parent="."]
-position = Vector2(220, 380)
+position = Vector2(270, 395)
 [node name="Castle" type="Area2D" parent="."]
-position = Vector2(80, 400)
+position = Vector2(72, 395)
 collision_layer = 8
 collision_mask = 2
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Castle"]
@@ -93,134 +93,156 @@ shape = SubResource("RectCastle")
 [node name="HUD" type="CanvasLayer" parent="."]
 [node name="TopBar" type="Panel" parent="HUD"]
 offset_right = 1280.0
-offset_bottom = 86.0
-theme_override_styles/panel = SubResource("TopBar")
+offset_bottom = 72.0
+theme_override_styles/panel = SubResource("TanPanel")
 [node name="CastleHPBar" type="ProgressBar" parent="HUD/TopBar"]
 offset_left = 18.0
-offset_top = 18.0
-offset_right = 330.0
-offset_bottom = 48.0
+offset_top = 39.0
+offset_right = 380.0
+offset_bottom = 57.0
 max_value = 1000.0
 value = 1000.0
 show_percentage = false
+theme_override_styles/background = SubResource("BarBG")
+theme_override_styles/fill = SubResource("BarFill")
 [node name="CastleHPLabel" type="Label" parent="HUD/TopBar"]
-offset_left = 28.0
-offset_top = 19.0
-offset_right = 310.0
-offset_bottom = 46.0
+offset_left = 22.0
+offset_top = 10.0
+offset_right = 380.0
+offset_bottom = 34.0
 theme_override_font_sizes/font_size = 16
-text = "CASTLE 1000/1000"
+theme_override_colors/font_color = Color(1,1,1,1)
+text = "CASTLE 0/0"
 [node name="WaveLabel" type="Label" parent="HUD/TopBar"]
 offset_left = 450.0
-offset_top = 18.0
+offset_top = 10.0
 offset_right = 830.0
-offset_bottom = 52.0
+offset_bottom = 54.0
 theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1,1,1,1)
 text = "WAVE 1 / 10"
 horizontal_alignment = 1
+vertical_alignment = 1
 [node name="GoldLabel" type="Label" parent="HUD/TopBar"]
 offset_left = 1030.0
-offset_top = 18.0
-offset_right = 1250.0
-offset_bottom = 48.0
+offset_top = 14.0
+offset_right = 1248.0
+offset_bottom = 50.0
 theme_override_font_sizes/font_size = 18
-text = "✦ GOLD 150"
+theme_override_colors/font_color = Color(1,1,1,1)
+text = "COIN 150"
 horizontal_alignment = 2
 
 [node name="UnitStrip" type="Panel" parent="HUD"]
-offset_left = 18.0
-offset_top = 100.0
-offset_right = 320.0
-offset_bottom = 292.0
-theme_override_styles/panel = SubResource("PanelDark")
+offset_left = 16.0
+offset_top = 92.0
+offset_right = 250.0
+offset_bottom = 260.0
+theme_override_styles/panel = SubResource("TanPanel")
 [node name="UnitTitle" type="Label" parent="HUD/UnitStrip"]
-offset_left = 12.0
-offset_top = 10.0
-offset_right = 280.0
-offset_bottom = 36.0
-theme_override_font_sizes/font_size = 14
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 224.0
+offset_bottom = 30.0
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(1,1,1,1)
 text = "ACTIVE TEAM"
+horizontal_alignment = 1
 [node name="UnitSelect" type="VBoxContainer" parent="HUD/UnitStrip"]
 offset_left = 10.0
-offset_top = 42.0
-offset_right = 290.0
-offset_bottom = 176.0
-theme_override_constants/separation = 8
+offset_top = 34.0
+offset_right = 224.0
+offset_bottom = 156.0
+theme_override_constants/separation = 6
 [node name="Unit1" type="Button" parent="HUD/UnitStrip/UnitSelect"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "SLOT 1"
 [node name="Unit2" type="Button" parent="HUD/UnitStrip/UnitSelect"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "SLOT 2"
 [node name="Unit3" type="Button" parent="HUD/UnitStrip/UnitSelect"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "SLOT 3"
 
 [node name="Bottom" type="Panel" parent="HUD"]
-offset_top = 570.0
+offset_top = 574.0
 offset_right = 1280.0
 offset_bottom = 720.0
-theme_override_styles/panel = SubResource("PanelDark")
+theme_override_styles/panel = SubResource("TanPanel")
 [node name="PauseBtn" type="Button" parent="HUD/Bottom"]
-offset_left = 22.0
-offset_top = 78.0
-offset_right = 130.0
-offset_bottom = 136.0
-theme_override_font_sizes/font_size = 15
-text = "Ⅱ PAUSE"
+offset_left = 18.0
+offset_top = 66.0
+offset_right = 132.0
+offset_bottom = 126.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
+text = "PAUSE"
 [node name="AutoBtn" type="Button" parent="HUD/Bottom"]
-offset_left = 142.0
-offset_top = 78.0
-offset_right = 264.0
-offset_bottom = 136.0
-theme_override_font_sizes/font_size = 15
+offset_left = 140.0
+offset_top = 66.0
+offset_right = 270.0
+offset_bottom = 126.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "AUTO: OFF"
 [node name="SkillBar" type="HBoxContainer" parent="HUD/Bottom"]
 offset_left = 380.0
-offset_top = 72.0
+offset_top = 56.0
 offset_right = 910.0
-offset_bottom = 142.0
-theme_override_constants/separation = 12
+offset_bottom = 132.0
+theme_override_constants/separation = 10
 alignment = 1
 [node name="Skill1" type="Button" parent="HUD/Bottom/SkillBar"]
-custom_minimum_size = Vector2(165, 64)
+custom_minimum_size = Vector2(165, 66)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("Skill")
-theme_override_styles/pressed = SubResource("SkillPressed")
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "SKILL 1"
 [node name="Skill2" type="Button" parent="HUD/Bottom/SkillBar"]
-custom_minimum_size = Vector2(165, 64)
+custom_minimum_size = Vector2(165, 66)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("Skill")
-theme_override_styles/pressed = SubResource("SkillPressed")
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "SKILL 2"
 [node name="Skill3" type="Button" parent="HUD/Bottom/SkillBar"]
-custom_minimum_size = Vector2(165, 64)
+custom_minimum_size = Vector2(165, 66)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("Skill")
-theme_override_styles/pressed = SubResource("SkillPressed")
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "SKILL 3"
 
 [node name="CatchUI" type="Panel" parent="HUD"]
 visible = false
 offset_left = 360.0
-offset_top = 180.0
+offset_top = 170.0
 offset_right = 920.0
 offset_bottom = 500.0
-theme_override_styles/panel = SubResource("PanelDark")
+theme_override_styles/panel = SubResource("TanPanel")
 [node name="InfoLabel" type="Label" parent="HUD/CatchUI"]
 offset_left = 26.0
 offset_top = 24.0
 offset_right = 534.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 19
-text = "CATCH OPPORTUNITY!"
+theme_override_colors/font_color = Color(1,1,1,1)
+text = "CATCH OPPORTUNITY"
 horizontal_alignment = 1
 [node name="TipLabel" type="Label" parent="HUD/CatchUI"]
 offset_left = 26.0
@@ -228,108 +250,128 @@ offset_top = 92.0
 offset_right = 534.0
 offset_bottom = 122.0
 theme_override_font_sizes/font_size = 12
-text = "Lower HP = better catch chance • Ball level increases odds"
+theme_override_colors/font_color = Color(1,1,1,1)
+text = "Lower HP improves your chance."
 horizontal_alignment = 1
 [node name="ThrowBasic" type="Button" parent="HUD/CatchUI"]
 offset_left = 24.0
 offset_top = 148.0
 offset_right = 184.0
 offset_bottom = 220.0
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "BASIC"
 [node name="ThrowGreat" type="Button" parent="HUD/CatchUI"]
 offset_left = 200.0
 offset_top = 148.0
 offset_right = 360.0
 offset_bottom = 220.0
-theme_override_font_sizes/font_size = 16
-text = "GREAT"
+theme_override_colors/font_color = Color(1,1,1,1)
+
 [node name="ThrowUltra" type="Button" parent="HUD/CatchUI"]
 offset_left = 376.0
 offset_top = 148.0
 offset_right = 536.0
 offset_bottom = 220.0
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "ULTRA"
 [node name="CancelCatch" type="Button" parent="HUD/CatchUI"]
 offset_left = 200.0
 offset_top = 246.0
 offset_right = 360.0
 offset_bottom = 292.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "SKIP"
 
-[node name="ResultPanel" type="Panel" parent="HUD"]
-process_mode = 3
+[node name="PauseMenu" type="Panel" parent="HUD"]
 visible = false
-offset_left = 330.0
-offset_top = 142.0
-offset_right = 950.0
-offset_bottom = 548.0
-theme_override_styles/panel = SubResource("Result")
+offset_left = 430.0
+offset_top = 165.0
+offset_right = 850.0
+offset_bottom = 555.0
+theme_override_styles/panel = SubResource("TanPanel")
+[node name="Title" type="Label" parent="HUD/PauseMenu"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 400.0
+offset_bottom = 62.0
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(1,1,1,1)
+text = "PAUSED"
+horizontal_alignment = 1
+[node name="ResumeBtn" type="Button" parent="HUD/PauseMenu"]
+offset_left = 70.0
+offset_top = 90.0
+offset_right = 350.0
+offset_bottom = 145.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
+text = "RESUME"
+[node name="RestartBtn" type="Button" parent="HUD/PauseMenu"]
+offset_left = 70.0
+offset_top = 160.0
+offset_right = 350.0
+offset_bottom = 215.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
+text = "RESTART"
+[node name="QuitBtn" type="Button" parent="HUD/PauseMenu"]
+offset_left = 70.0
+offset_top = 230.0
+offset_right = 350.0
+offset_bottom = 285.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
+text = "MAIN MENU"
+
+[node name="ResultPanel" type="Panel" parent="HUD"]
+visible = false
+offset_left = 400.0
+offset_top = 160.0
+offset_right = 880.0
+offset_bottom = 560.0
+theme_override_styles/panel = SubResource("TanPanel")
 [node name="ResultLabel" type="Label" parent="HUD/ResultPanel"]
-offset_left = 40.0
-offset_top = 30.0
-offset_right = 580.0
-offset_bottom = 95.0
-theme_override_font_sizes/font_size = 42
+offset_left = 20.0
+offset_top = 26.0
+offset_right = 460.0
+offset_bottom = 82.0
+theme_override_font_sizes/font_size = 34
+theme_override_colors/font_color = Color(1,1,1,1)
 text = "VICTORY!"
 horizontal_alignment = 1
 [node name="DetailLabel" type="Label" parent="HUD/ResultPanel"]
-offset_left = 44.0
-offset_top = 105.0
-offset_right = 576.0
-offset_bottom = 202.0
-theme_override_font_sizes/font_size = 17
+offset_left = 30.0
+offset_top = 96.0
+offset_right = 450.0
+offset_bottom = 190.0
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1,1,1,1)
 text = ""
 horizontal_alignment = 1
 [node name="RetryBtn" type="Button" parent="HUD/ResultPanel"]
 offset_left = 70.0
 offset_top = 240.0
-offset_right = 270.0
-offset_bottom = 306.0
-theme_override_font_sizes/font_size = 18
+offset_right = 220.0
+offset_bottom = 295.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "RETRY"
 [node name="MenuBtn" type="Button" parent="HUD/ResultPanel"]
-offset_left = 350.0
+offset_left = 260.0
 offset_top = 240.0
-offset_right = 550.0
-offset_bottom = 306.0
-theme_override_font_sizes/font_size = 18
+offset_right = 410.0
+offset_bottom = 295.0
+theme_override_colors/font_color = Color(1,1,1,1)
+theme_override_styles/normal = SubResource("TanButton")
+theme_override_styles/pressed = SubResource("TanPressed")
 text = "MAIN MENU"
-
-[node name="PauseMenu" type="Panel" parent="HUD"]
-process_mode = 3
-visible = false
-offset_left = 415.0
-offset_top = 175.0
-offset_right = 865.0
-offset_bottom = 500.0
-theme_override_styles/panel = SubResource("PanelDark")
-[node name="Title" type="Label" parent="HUD/PauseMenu"]
-offset_left = 25.0
-offset_top = 18.0
-offset_right = 425.0
-offset_bottom = 60.0
-theme_override_font_sizes/font_size = 28
-text = "PAUSED"
-horizontal_alignment = 1
-[node name="ResumeBtn" type="Button" parent="HUD/PauseMenu"]
-offset_left = 55.0
-offset_top = 78.0
-offset_right = 395.0
-offset_bottom = 132.0
-text = "RESUME"
-[node name="RestartBtn" type="Button" parent="HUD/PauseMenu"]
-offset_left = 55.0
-offset_top = 148.0
-offset_right = 395.0
-offset_bottom = 202.0
-text = "RESTART"
-[node name="QuitBtn" type="Button" parent="HUD/PauseMenu"]
-offset_left = 55.0
-offset_top = 218.0
-offset_right = 395.0
-offset_bottom = 272.0
-text = "QUIT TO MENU"
-
-[connection signal="body_entered" from="Castle" to="." method="_on_castle_body_entered"]

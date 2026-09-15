@@ -19,3 +19,14 @@
 
 ## How to rebuild APK
 Godot **4.3** → Export → Android, or GitHub Actions `build-android.yml`.
+
+## GUI redesign / TD focus
+- Replaced the main hub UI with a single tan/white visual language and geometric button layout.
+- Main hub zones now follow the requested 1-14 order: Settings, Team, Shop, Battle, Index, Evolution, Background, Farm, Mana, Team HP, Coin, Gem, Hunter, Dungeon.
+- Battle is the only active game mode from the main hub; unfinished features display a Coming Soon panel.
+- Battle is a geometric pentagon/trapezoid CTA with quadrilateral companion buttons.
+- Team back returns directly to MainMenu instead of the retired Mode Select screen.
+- Shop uses the forest background and tan card layout with item names above BUY buttons.
+- Team selection is performed only before entering battle; the battle HUD has no team-changing control.
+- Castle HP is the aggregate current/max HP of the active battle team, not a fixed 1000 HP base.
+- Player and enemy Unit visuals are forced visible and rendered above the battlefield to fix missing monster/slime visuals.
