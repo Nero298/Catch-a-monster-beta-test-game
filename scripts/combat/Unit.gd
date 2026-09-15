@@ -18,6 +18,9 @@ var spd: int = 10
 var level: int = 1
 var is_alive: bool = true
 var skill_cooldowns: Dictionary = {}
+var mana: float = 50.0
+var max_mana: float = 50.0
+var mana_regen: float = 6.0  # per second
 var move_speed: float = 80.0
 var attack_range: float = 70.0
 var attack_timer: float = 0.0
@@ -49,6 +52,9 @@ func setup(monster_data: Dictionary, unit_side: int, p_slot: int = 0) -> void:  
 	is_alive = true
 	move_speed = 40.0 + spd * 3.0
 	base_attack_interval = max(0.55, 1.5 - spd * 0.03)
+	max_mana = 40.0 + level * 6.0 + spd * 1.5
+	mana = max_mana
+	mana_regen = 5.0 + spd * 0.15
 	_setup_collision_layers()
 	_load_sprite()
 	_setup_animations()
@@ -81,14 +87,24 @@ func _load_sprite() -> void:
 	if sprite and ResourceLoader.exists(path):
 		var tex: Texture2D = load(path)
 		sprite.texture = tex
-		sprite.region_enabled = true
-		sprite.region_rect = Rect2(0, 0, FRAME_W, FRAME_H)
+		# Only treat as horizontal spritesheet if width covers multiple frames
+		var is_sheet := tex.get_width() >= FRAME_W * 2
+		sprite.region_enabled = is_sheet
+		if is_sheet:
+			sprite.region_rect = Rect2(0, 0, FRAME_W, FRAME_H)
+		else:
+			sprite.region_enabled = false
 		sprite.visible = true
 		sprite.centered = true
+		# Scale to readable size on mobile
+		var target_h := 72.0
+		var sy := target_h / max(1.0, float(tex.get_height() if not is_sheet else FRAME_H))
+		var sx := sy
 		if side == Side.PLAYER:
-			sprite.scale = Vector2(1.2, 1.2)
+			sprite.scale = Vector2(sx * 1.15, sy * 1.15)
 		else:
-			sprite.scale = Vector2(-1.0, 1.0)
+			# Face left (toward castle) — negative X flips
+			sprite.scale = Vector2(-sx, sy)
 	elif color_rect:
 		color_rect.visible = true
 		color_rect.color = data.get("color", Color(0.7, 0.7, 0.7))
@@ -100,11 +116,45 @@ func _setup_animations() -> void:
 	if lib == null:
 		lib = AnimationLibrary.new()
 		anim_player.add_animation_library("", lib)
-	_add_full_anim(lib, "idle", [0, 1], 0.32, true, Vector2.ONE, Vector2.ONE)
-	_add_full_anim(lib, "attack", [2, 1, 0], 0.12, false, Vector2(1.12, 0.94), Vector2(1.0, 1.0))
-	_add_full_anim(lib, "hit", [3, 0], 0.10, false, Vector2(0.96, 1.04), Vector2(1.0, 1.0))
-	_add_full_anim(lib, "death", [4], 0.45, false, Vector2(0.90, 0.90), Vector2(1.0, 0.0))
-	_add_full_anim(lib, "spawn", [0, 1], 0.12, false, Vector2(0.75, 0.75), Vector2(1.0, 1.0))
+	var is_sheet := false
+	if sprite and sprite.texture:
+		is_sheet = sprite.region_enabled and sprite.texture.get_width() >= FRAME_W * 2
+	if is_sheet:
+		_add_full_anim(lib, "idle", [0, 1], 0.32, true, Vector2.ONE, Vector2.ONE)
+		_add_full_anim(lib, "attack", [2, 1, 0], 0.12, false, Vector2(1.12, 0.94), Vector2(1.0, 1.0))
+		_add_full_anim(lib, "hit", [3, 0], 0.10, false, Vector2(0.96, 1.04), Vector2(1.0, 1.0))
+		_add_full_anim(lib, "death", [4], 0.45, false, Vector2(0.90, 0.90), Vector2(1.0, 0.0))
+		_add_full_anim(lib, "spawn", [0, 1], 0.12, false, Vector2(0.75, 0.75), Vector2(1.0, 1.0))
+	else:
+		# Single-frame art: bob / squash only (no region frame swap)
+		_add_bob_anim(lib, "idle", 0.55, true)
+		_add_bob_anim(lib, "attack", 0.18, false, Vector2(1.18, 0.88), Vector2(1.0, 1.0))
+		_add_bob_anim(lib, "hit", 0.12, false, Vector2(0.92, 1.08), Vector2(1.0, 1.0))
+		_add_bob_anim(lib, "death", 0.4, false, Vector2(1.0, 1.0), Vector2(0.2, 0.2))
+		_add_bob_anim(lib, "spawn", 0.2, false, Vector2(0.5, 0.5), Vector2(1.0, 1.0))
+
+func _add_bob_anim(lib: AnimationLibrary, anim_name: String, length: float, loop: bool, start_s: Vector2 = Vector2.ONE, end_s: Vector2 = Vector2.ONE) -> void:
+	if lib.has_animation(anim_name):
+		return
+	var anim := Animation.new()
+	anim.length = length
+	anim.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
+	var base = Vector2(1.15, 1.15) if side == Side.PLAYER else Vector2(1.0, 1.0)
+	var scale_track := anim.add_track(Animation.TYPE_VALUE)
+	anim.track_set_path(scale_track, NodePath("Visual:scale"))
+	if loop:
+		anim.track_insert_key(scale_track, 0.0, base * Vector2(1.0, 1.0))
+		anim.track_insert_key(scale_track, length * 0.5, base * Vector2(1.04, 0.96))
+		anim.track_insert_key(scale_track, length, base * Vector2(1.0, 1.0))
+	else:
+		anim.track_insert_key(scale_track, 0.0, base * start_s)
+		anim.track_insert_key(scale_track, length, base * end_s)
+	if anim_name == "hit":
+		var mod_track := anim.add_track(Animation.TYPE_VALUE)
+		anim.track_set_path(mod_track, NodePath("Visual:modulate"))
+		anim.track_insert_key(mod_track, 0.0, Color(1.5, 0.6, 0.6))
+		anim.track_insert_key(mod_track, length, Color.WHITE)
+	lib.add_animation(anim_name, anim)
 
 func _add_full_anim(lib: AnimationLibrary, anim_name: String, frames: Array, step: float, loop: bool, start_scale: Vector2, end_scale: Vector2) -> void:
 	if lib.has_animation(anim_name):
@@ -115,6 +165,9 @@ func _add_full_anim(lib: AnimationLibrary, anim_name: String, frames: Array, ste
 
 	var frame_track := anim.add_track(Animation.TYPE_VALUE)
 	anim.track_set_path(frame_track, NodePath("Visual/Sprite2D:region_rect"))
+	# CRITICAL: discrete keys — no lerp between region rects (that caused 2-frame slide jitter)
+	anim.track_set_interpolation_type(frame_track, Animation.INTERPOLATION_NEAREST)
+	anim.value_track_set_update_mode(frame_track, Animation.UPDATE_DISCRETE)
 	for i in range(frames.size()):
 		anim.track_insert_key(frame_track, i * step, Rect2(frames[i] * FRAME_W, 0, FRAME_W, FRAME_H))
 
@@ -147,13 +200,15 @@ func _physics_process(delta: float) -> void:
 		return
 	attack_timer -= delta
 	_update_cooldowns(delta)
+	mana = min(max_mana, mana + mana_regen * delta)
 	if side == Side.ENEMY:
 		_enemy_ai(delta)
 	else:
 		_player_ai(delta)
 
 func _enemy_ai(_delta: float) -> void:
-	velocity = Vector2(move_speed, 0)
+	# Enemies spawn on the RIGHT and march LEFT toward player/castle
+	velocity = Vector2(-move_speed, 0)
 	move_and_slide()
 	var nearest = _find_nearest_opponent()
 	if nearest and global_position.distance_to(nearest.global_position) <= attack_range:
@@ -208,6 +263,9 @@ func use_skill(skill_index: int) -> bool:
 	var skill = DataManager.get_skill(skill_id)
 	if skill.is_empty():
 		return false
+	var mana_cost := float(skill.get("mana_cost", 15))
+	if mana < mana_cost:
+		return false  # not enough mana — skill blocked even if CD ready
 	var target_unit = _find_nearest_opponent()
 	match skill.get("type", "damage"):
 		"damage":
@@ -229,6 +287,8 @@ func use_skill(skill_index: int) -> bool:
 			heal(skill.power)
 		_:
 			if target_unit: target_unit.take_damage(int(skill.get("power", 10)), self)
+	var mana_cost_spend := float(skill.get("mana_cost", 15))
+	mana = max(0.0, mana - mana_cost_spend)
 	skill_cooldowns[skill_id] = float(skill.get("cooldown", 2.0))
 	_play_anim("attack")
 	if anim_player and anim_player.has_animation("idle"):
@@ -239,7 +299,11 @@ func use_skill(skill_index: int) -> bool:
 func get_ready_skill_index() -> int:
 	var skills_arr = data.get("skills", [])
 	for i in range(skills_arr.size()):
-		if skill_cooldowns.get(skills_arr[i], 0.0) <= 0.0:
+		if skill_cooldowns.get(skills_arr[i], 0.0) > 0.0:
+			continue
+		var sk = DataManager.get_skill(skills_arr[i])
+		var cost = float(sk.get("mana_cost", 15))
+		if mana >= cost:
 			return i
 	return -1
 

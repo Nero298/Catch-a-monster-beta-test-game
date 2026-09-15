@@ -244,6 +244,7 @@ func _on_add() -> void:
 			status_label.text = "That monster is already in your team."
 			return
 	GameManager.player_team.append(m.duplicate(true))
+	GameManager.recalculate_base_hp_from_team()
 	SaveManager.save_game()
 	AudioManager.play_sfx("button")
 	status_label.text = "Added to team."
@@ -256,6 +257,7 @@ func _on_remove() -> void:
 	for i in range(GameManager.player_team.size() - 1, -1, -1):
 		if GameManager.player_team[i].get("uid") == uid:
 			GameManager.player_team.remove_at(i)
+			GameManager.recalculate_base_hp_from_team()
 			break
 	SaveManager.save_game()
 	status_label.text = "Removed from team."

@@ -1,29 +1,21 @@
-# Fixes applied (2026-09-14)
+# Fixes v0.2.4 (2026-09-14)
 
-## Root cause of green/blue screen after Godot logo
-The previous source zip was **missing critical UI scripts** that the main scene and menus require:
-- `scripts/ui/MainMenu.gd`
-- `scripts/ui/ModeSelect.gd`
-- `scripts/ui/StarterSelect.gd`
-- `scripts/ui/HuntSelect.gd`
-- `scripts/ui/Settings.gd`
-- `scripts/ui/Shop.gd`
-- `scripts/ui/TeamSlot.gd`
+## Critical gameplay / layout
+1. **Player LEFT, enemies RIGHT** — Spawn/PlayerSpawn/Castle flipped. Enemies march left toward base.
+2. **Wave counter bug (Wave 85/8)** — `_on_wave_cleared` could fire every frame during await; added `wave_transitioning` guard.
+3. **Skill buttons stuck after one use** — Skill labels now refresh every frame; cooldown UI shows name + remaining time; disabled only while CD > 0.
+4. **Pause locks all input** — PauseMenu + ResultPanel use `process_mode = ALWAYS` so buttons work while tree is paused.
+5. **Sprite “2-frame jitter”** — Single-image sprites no longer treated as 5-frame sheets; idle/attack use scale bob only. Sheets still animate if width ≥ 128.
 
-Without `MainMenu.gd`, the engine loaded the splash then failed the main scene → stuck on clear color.
+## Flow / UX
+6. After starter select → **Main Menu hub** (not Mode Select).
+7. Main Menu redesigned: team preview + **Defense (default)**, Hunt, Dungeon, Collection, Shop, Settings.
+8. Starter cards show HP/ATK/DEF/SPD + skill names.
+9. Combat team slots show real monster names/levels.
 
-## Additional fixes in this package
-1. Restored full set of UI + combat scripts from the fixed tree.
-2. Restored all monster sprites (`chamander`, `glazadon`, `sproutusk`, `slime` + icons).
-3. Fixed mixed tab/space indentation in `SaveManager.gd`, `MainMenu.gd`, `Collection.gd`, `TeamSlot.gd` (Godot 4 rejects mixed indent in one file).
-4. Added missing `MainMenu._update_gold()` which was called from `_ready()` and would throw at runtime.
-5. Re-ran static validation (`tools/validate_project.py`) — OK.
-6. Ensured Android export preset + Godot 4.3 mobile renderer settings.
+## Visual
+10. Softened castle wall visual on the left (defend target, not random right column).
+11. Main menu cards / accents closer to GrowCastle-style panels.
 
-## How to build APK
-- Open this folder in **Godot 4.3** (same as CI).
-- Project → Export → Android (preset already configured).
-- Or push to GitHub and run the `build-android.yml` workflow.
-
-## Note
-Do not open an incomplete copy that only has partial `scripts/ui/`. Always use this full tree.
+## How to rebuild APK
+Godot **4.3** → Export → Android, or GitHub Actions `build-android.yml`.

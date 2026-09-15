@@ -32,7 +32,7 @@ func _build_cards() -> void:
 		# Button
 		var btn = Button.new()
 		btn.custom_minimum_size = Vector2(200, 120)
-		btn.text = "%s\n%s | Rank %s\nHP %d  ATK %d" % [m.name, m.element, m.rank, m.base_hp, m.base_atk]
+		btn.text = "%s\n%s | Rank %s\nHP %d  ATK %d  DEF %d  SPD %d" % [m.name, m.element, m.rank, m.base_hp, m.base_atk, m.base_def, m.base_spd]
 		btn.add_theme_font_size_override("font_size", 16)
 		var style = StyleBoxFlat.new()
 		var col = m.color if m.color is Color else Color(0.3, 0.3, 0.35)
@@ -46,7 +46,13 @@ func _build_cards() -> void:
 func _on_select(id: String, m: Dictionary) -> void:
 	selected_id = id
 	confirm_btn.disabled = false
-	desc_label.text = m.get("description", "") + "\n\nSkills: " + ", ".join(m.get("skills", []))
+	var sk_names: Array = []
+	for sid in m.get("skills", []):
+		var sk = DataManager.get_skill(sid)
+		sk_names.append(sk.get("name", sid) if sk else sid)
+	desc_label.text = "%s\n\nHP %d · ATK %d · DEF %d · SPD %d\nSkills: %s" % [
+		m.get("description", ""), m.base_hp, m.base_atk, m.base_def, m.base_spd, ", ".join(sk_names)
+	]
 	AudioManager.play_sfx("button")
 
 func _on_confirm() -> void:
@@ -54,4 +60,4 @@ func _on_confirm() -> void:
 		return
 	AudioManager.play_sfx("button")
 	GameManager.set_starter(selected_id)
-	SceneManager.go_mode_select()
+	SceneManager.go_main_menu()

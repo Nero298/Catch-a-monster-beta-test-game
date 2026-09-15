@@ -4,7 +4,7 @@ extends Node
 const SAVE_DIR := "user://CatchAMonster_Data/"
 const SAVE_FILE := "player_save.json"
 const BACKUP_FILE := "player_save_backup.json"
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 
 func _ready() -> void:
 	_ensure_dir()
@@ -22,6 +22,7 @@ func save_game() -> bool:
 		"version": SAVE_VERSION,
 		"player_name": GameManager.player_name,
 		"gold": GameManager.gold,
+		"gems": GameManager.gems,
 		"has_chosen_starter": GameManager.has_chosen_starter,
 		"owned_monsters": GameManager.owned_monsters,
 		"player_team": GameManager.player_team,
@@ -79,6 +80,7 @@ func load_game() -> bool:
 		return false
 	GameManager.player_name = data.get("player_name", "Trainer")
 	GameManager.gold = data.get("gold", 150)
+	GameManager.gems = data.get("gems", 0)
 	GameManager.has_chosen_starter = data.get("has_chosen_starter", false)
 	GameManager.owned_monsters = data.get("owned_monsters", [])
 	GameManager.player_team = data.get("player_team", [])

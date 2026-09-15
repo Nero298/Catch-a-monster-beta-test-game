@@ -1,93 +1,148 @@
 extends Control
-## Shop: buy Balls, food, evolution stones. Upgrade Ball levels.
-
-@onready var gold_label: Label = $VBox/GoldLabel
-@onready var status_label: Label = $VBox/StatusLabel
+## Pixel shop UI — tan panel, green header, BUY buttons (style from sample)
 
 func _ready() -> void:
-	_refresh()
-	GameManager.gold_changed.connect(func(_g): _refresh())
+	_build()
 
-func _refresh() -> void:
-	if gold_label:
-		gold_label.text = "Gold: %d" % GameManager.gold
-	_update_ball_buttons()
+func _build() -> void:
+	for c in get_children():
+		c.queue_free()
 
-func _update_ball_buttons() -> void:
-	for bid in ["basic", "great", "ultra"]:
-		var path = "VBox/Balls/%sBtn" % bid.capitalize()
-		if has_node(path):
-			var btn = get_node(path)
-			var data = DataManager.balls.get(bid, {})
-			var cost = data.get("cost", 50)
-			var count = GameManager.balls.get(bid, 0)
-			var lvl = GameManager.ball_levels.get(bid, 1)
-			btn.text = "%s x%d (Lv%d) - %dG" % [data.get("name", bid), count, lvl, cost]
+	var bg := ColorRect.new()
+	bg.color = Color(0.55, 0.62, 0.58, 1)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
 
-func _on_buy_basic() -> void:
-	_buy_ball("basic")
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(center)
 
-func _on_buy_great() -> void:
-	_buy_ball("great")
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(420, 480)
+	card.add_theme_stylebox_override("panel", UITheme.panel_tan(14))
+	center.add_child(card)
 
-func _on_buy_ultra() -> void:
-	_buy_ball("ultra")
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 10)
+	card.add_child(root)
 
-func _buy_ball(ball_id: String) -> void:
-	var data = DataManager.balls.get(ball_id, {})
-	var cost = data.get("cost", 50)
-	if GameManager.spend_gold(cost):
-		GameManager.balls[ball_id] = GameManager.balls.get(ball_id, 0) + 1
-		status_label.text = "Bought 1 " + data.get("name", ball_id)
-		AudioManager.play_sfx("button")
-		SaveManager.save_game()
-		_refresh()
-	else:
-		status_label.text = "Not enough Gold!"
+	# Header SHOP
+	var header := PanelContainer.new()
+	header.add_theme_stylebox_override("panel", UITheme.panel_header_green())
+	root.add_child(header)
+	var hh := HBoxContainer.new()
+	header.add_child(hh)
+	var title := Label.new()
+	title.text = "SHOP"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_color_override("font_color", Color(1, 1, 1))
+	hh.add_child(title)
+	var close_btn := UITheme.themed_button("X", "grey", Vector2(36, 32), 14)
+	close_btn.pressed.connect(_on_back)
+	hh.add_child(close_btn)
 
-func _on_upgrade_basic() -> void:
-	_upgrade("basic")
+	# Items grid 2 rows x 3
+	var items := [
+		{"id": "basic", "name": "Basic Ball", "price": 25, "icon": "res://assets/sprites/ui/basic_ball.png", "kind": "ball"},
+		{"id": "great", "name": "Great Ball", "price": 80, "icon": "res://assets/sprites/ui/great_ball.png", "kind": "ball"},
+		{"id": "ultra", "name": "Ultra Ball", "price": 200, "icon": "res://assets/sprites/ui/ultra_ball.png", "kind": "ball"},
+		{"id": "food", "name": "Food", "price": 40, "icon": "", "kind": "item"},
+		{"id": "potion", "name": "Potion", "price": 60, "icon": "", "kind": "item"},
+		{"id": "mana_drop", "name": "Mana Drop", "price": 50, "icon": "", "kind": "item"},
+	]
 
-func _on_upgrade_great() -> void:
-	_upgrade("great")
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 12)
+	root.add_child(grid)
 
-func _on_upgrade_ultra() -> void:
-	_upgrade("ultra")
+	for it in items:
+		var cell := VBoxContainer.new()
+		cell.custom_minimum_size = Vector2(110, 120)
+		cell.alignment = BoxContainer.ALIGNMENT_CENTER
+		# icon box
+		var icon_panel := PanelContainer.new()
+		icon_panel.custom_minimum_size = Vector2(56, 56)
+		icon_panel.add_theme_stylebox_override("panel", UITheme.flat_fallback(Color(0.95, 0.9, 0.75, 0.5), Color(0.6, 0.5, 0.3), 8))
+		cell.add_child(icon_panel)
+		var icon_box := CenterContainer.new()
+		icon_panel.add_child(icon_box)
+		var tex := TextureRect.new()
+		tex.custom_minimum_size = Vector2(40, 40)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		if str(it.icon) != "" and ResourceLoader.exists(it.icon):
+			tex.texture = load(it.icon)
+		icon_box.add_child(tex)
+		# price
+		var price_row := HBoxContainer.new()
+		price_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		var coin := UITheme.make_icon(UITheme.ICON_COIN, Vector2(18, 18))
+		price_row.add_child(coin)
+		var pl := Label.new()
+		pl.text = str(it.price)
+		pl.add_theme_font_size_override("font_size", 14)
+		pl.add_theme_color_override("font_color", Color(0.25, 0.2, 0.1))
+		price_row.add_child(pl)
+		cell.add_child(price_row)
+		# BUY
+		var buy := UITheme.buy_button(Vector2(80, 30))
+		buy.pressed.connect(_on_buy.bind(it))
+		cell.add_child(buy)
+		grid.add_child(cell)
 
-func _upgrade(ball_id: String) -> void:
-	var cost = GameManager.get_ball_upgrade_cost(ball_id)
-	if GameManager.upgrade_ball(ball_id):
-		status_label.text = "%s upgraded to Lv.%d!" % [ball_id.capitalize(), GameManager.ball_levels[ball_id]]
-		AudioManager.play_sfx("level_up")
-		_refresh()
-	else:
-		status_label.text = "Need %d Gold to upgrade" % cost
+	# Footer currency
+	var footer := HBoxContainer.new()
+	footer.alignment = BoxContainer.ALIGNMENT_CENTER
+	footer.add_theme_constant_override("separation", 24)
+	root.add_child(footer)
+	var c_row := HBoxContainer.new()
+	c_row.add_child(UITheme.make_icon(UITheme.ICON_COIN, Vector2(24, 24)))
+	var cl := Label.new()
+	cl.name = "CoinLabel"
+	cl.text = str(GameManager.gold)
+	cl.add_theme_font_size_override("font_size", 16)
+	cl.add_theme_color_override("font_color", Color(0.2, 0.15, 0.05))
+	c_row.add_child(cl)
+	footer.add_child(c_row)
+	var g_row := HBoxContainer.new()
+	g_row.add_child(UITheme.make_icon(UITheme.ICON_GEM, Vector2(24, 24)))
+	var gl := Label.new()
+	gl.name = "GemLabel"
+	gl.text = str(GameManager.gems)
+	gl.add_theme_font_size_override("font_size", 16)
+	gl.add_theme_color_override("font_color", Color(0.15, 0.25, 0.45))
+	g_row.add_child(gl)
+	footer.add_child(g_row)
 
-func _on_buy_meat() -> void:
-	_buy_item("meat", 40)
+	var back := UITheme.themed_button("BACK", "beige", Vector2(120, 40), 16)
+	back.pressed.connect(_on_back)
+	root.add_child(back)
 
-func _on_buy_premium() -> void:
-	_buy_item("premium_food", 120)
+func _refresh_money() -> void:
+	var cl = find_child("CoinLabel", true, false)
+	var gl = find_child("GemLabel", true, false)
+	if cl:
+		cl.text = str(GameManager.gold)
+	if gl:
+		gl.text = str(GameManager.gems)
 
-func _on_buy_fire_stone() -> void:
-	_buy_item("fire_stone", 200)
-
-func _on_buy_water_stone() -> void:
-	_buy_item("water_stone", 200)
-
-func _on_buy_leaf_stone() -> void:
-	_buy_item("leaf_stone", 200)
-
-func _buy_item(item_id: String, cost: int) -> void:
-	if GameManager.spend_gold(cost):
-		GameManager.add_item(item_id, 1)
-		status_label.text = "Bought " + DataManager.items.get(item_id, {}).get("name", item_id)
-		AudioManager.play_sfx("button")
-		SaveManager.save_game()
-		_refresh()
-	else:
-		status_label.text = "Not enough Gold!"
+func _on_buy(it: Dictionary) -> void:
+	AudioManager.play_sfx("button")
+	var price: int = int(it.price)
+	if not GameManager.spend_gold(price):
+		return
+	match str(it.kind):
+		"ball":
+			GameManager.balls[it.id] = GameManager.balls.get(it.id, 0) + 1
+		_:
+			GameManager.add_item(str(it.id), 1)
+	SaveManager.save_game()
+	_refresh_money()
 
 func _on_back() -> void:
 	AudioManager.play_sfx("button")
-	SceneManager.go_mode_select()
+	SceneManager.go_main_menu()

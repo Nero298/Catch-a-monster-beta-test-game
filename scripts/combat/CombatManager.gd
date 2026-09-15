@@ -1,6 +1,6 @@
 extends Node2D
 ## Main combat controller - horizontal defense + hunt/dungeon
-## Player units fixed on right in 1-3 slots. Smart auto-battle.
+## Player units fixed on LEFT in 1-3 slots. Enemies spawn from RIGHT. Smart auto-battle.
 
 signal wave_cleared(wave: int)
 signal combat_ended(won: bool)
@@ -25,6 +25,7 @@ var unit_scene: PackedScene
 var selected_unit_idx: int = 0  # which player unit receives manual skill
 var gold_earned_this_run: int = 0
 var monsters_caught_this_run: Array = []
+var wave_transitioning: bool = false
 
 # Slot Y offsets for 1-3 player units (relative to player_spawn)
 const SLOT_OFFSETS := [0.0, -75.0, 75.0]
@@ -69,7 +70,22 @@ func _setup_player_team() -> void:
 		u.setup(mdata, 0, i)  # 0 = Unit.Side.PLAYER (fix headless export enum bug)
 		u.died.connect(_on_player_unit_died)
 		player_units.append(u)
+	_refresh_team_slot_labels()
 	_update_skill_labels()
+
+func _refresh_team_slot_labels() -> void:
+	for i in range(3):
+		var path = "UnitStrip/UnitSelect/Unit%d" % (i + 1)
+		if not hud or not hud.has_node(path):
+			continue
+		var btn = hud.get_node(path)
+		if i < player_units.size() and player_units[i] and player_units[i].is_alive:
+			var d = player_units[i].data
+			btn.text = "%s Lv.%d" % [d.get("name", "Unit"), d.get("level", 1)]
+			btn.disabled = false
+		else:
+			btn.text = "SLOT %d" % (i + 1)
+			btn.disabled = true
 
 func _connect_hud() -> void:
 	if hud.has_node("Bottom/SkillBar/Skill1"):
@@ -107,6 +123,7 @@ func _connect_hud() -> void:
 		hud.get_node("PauseMenu/QuitBtn").pressed.connect(func(): SceneManager.go_main_menu())
 
 func _process(delta: float) -> void:
+	_update_skill_labels()
 	if GameManager.current_state != GameManager.GameState.PLAYING:
 		return
 	if is_spawning and enemies_spawned < enemies_to_spawn:
@@ -114,8 +131,8 @@ func _process(delta: float) -> void:
 		if wave_timer <= 0:
 			_spawn_enemy()
 			wave_timer = spawn_interval
-	# Check wave clear
-	if not is_spawning and current_enemies.is_empty() and enemies_spawned >= enemies_to_spawn:
+	# Check wave clear (guard against multi-fire while awaiting)
+	if not wave_transitioning and not is_spawning and current_enemies.is_empty() and enemies_spawned >= enemies_to_spawn and enemies_to_spawn > 0:
 		_on_wave_cleared()
 	# Smarter auto-battle: prefer ready skills on nearest units
 	if GameManager.auto_battle and not player_units.is_empty():
@@ -131,6 +148,7 @@ func _auto_battle_tick() -> void:
 			break  # one skill per frame to avoid spam
 
 func _start_next_wave() -> void:
+	wave_transitioning = false
 	GameManager.current_wave += 1
 	GameManager.wave_changed.emit(GameManager.current_wave)
 	current_enemies.clear()
@@ -212,13 +230,18 @@ func _on_player_unit_died(unit: Unit) -> void:
 		GameManager.game_over.emit(false)
 
 func _on_wave_cleared() -> void:
+	if wave_transitioning:
+		return
+	wave_transitioning = true
 	wave_cleared.emit(GameManager.current_wave)
 	if GameManager.current_wave >= GameManager.max_waves:
 		_victory()
+		wave_transitioning = false
 	else:
 		await get_tree().create_timer(1.4).timeout
 		if GameManager.current_state == GameManager.GameState.PLAYING:
 			_start_next_wave()
+		wave_transitioning = false
 
 func _victory() -> void:
 	var bonus = 80 * GameManager.current_wave
@@ -227,6 +250,9 @@ func _victory() -> void:
 		"Nightmare": bonus = int(bonus * 2.2)
 	GameManager.add_gold(bonus)
 	gold_earned_this_run += bonus
+	# TD (Defense) victory grants 1 gem
+	if GameManager.current_mode == GameManager.GameMode.DEFENSE:
+		GameManager.add_gems(1)
 	if GameManager.current_mode == GameManager.GameMode.DUNGEON and GameManager.difficulty in ["Hard", "Nightmare"]:
 		GameManager.inventory["boss_egg"] = GameManager.inventory.get("boss_egg", 0) + 1
 	SaveManager.save_game()
@@ -234,6 +260,8 @@ func _victory() -> void:
 	_show_result(true)
 
 func _on_game_over(won: bool) -> void:
+	get_tree().paused = false
+	GameManager.current_state = GameManager.GameState.RESULT
 	if not won:
 		_show_result(false)
 
@@ -247,6 +275,8 @@ func _show_result(won: bool) -> void:
 			panel.get_node("ResultLabel").text = "VICTORY!" if won else "DEFEAT..."
 		if panel.has_node("DetailLabel"):
 			var detail = "Gold earned: ~%d\nCaught: %d" % [gold_earned_this_run, monsters_caught_this_run.size()]
+			if won and GameManager.current_mode == GameManager.GameMode.DEFENSE:
+				detail += "\nGem +1"
 			if won and GameManager.current_mode == GameManager.GameMode.DUNGEON and GameManager.difficulty in ["Hard", "Nightmare"]:
 				detail += "\nBoss Egg obtained!"
 			panel.get_node("DetailLabel").text = detail
@@ -273,14 +303,18 @@ func _select_unit(idx: int) -> void:
 func _use_skill_manual(skill_idx: int) -> void:
 	if player_units.is_empty():
 		return
+	if GameManager.current_state != GameManager.GameState.PLAYING:
+		return
 	var chosen: Unit = null
-	if selected_unit_idx < player_units.size() and player_units[selected_unit_idx].is_alive:
+	if selected_unit_idx < player_units.size() and is_instance_valid(player_units[selected_unit_idx]) and player_units[selected_unit_idx].is_alive:
 		chosen = player_units[selected_unit_idx]
 	else:
 		chosen = _find_best_unit_for_skill()
-	if chosen:
-		chosen.use_skill(skill_idx)
+	if chosen and is_instance_valid(chosen):
+		var ok = chosen.use_skill(skill_idx)
 		_update_skill_labels()
+		if ok:
+			AudioManager.play_sfx("button")
 
 func _find_best_unit_for_skill() -> Unit:
 	var best: Unit = null
@@ -301,10 +335,17 @@ func _find_best_unit_for_skill() -> Unit:
 	return best
 
 func _update_skill_labels() -> void:
-	if player_units.is_empty():
+	if not hud or player_units.is_empty():
 		return
-	var u = player_units[selected_unit_idx] if selected_unit_idx < player_units.size() else player_units[0]
-	if not u or not u.is_alive:
+	var u: Unit = null
+	if selected_unit_idx < player_units.size() and is_instance_valid(player_units[selected_unit_idx]) and player_units[selected_unit_idx].is_alive:
+		u = player_units[selected_unit_idx]
+	else:
+		for pu in player_units:
+			if is_instance_valid(pu) and pu.is_alive:
+				u = pu
+				break
+	if u == null:
 		return
 	var skills = u.data.get("skills", [])
 	for i in range(3):
@@ -312,19 +353,34 @@ func _update_skill_labels() -> void:
 		if hud.has_node(btn_path):
 			var btn = hud.get_node(btn_path)
 			if i < skills.size():
-				var sk = DataManager.get_skill(skills[i])
-				var cd = u.skill_cooldowns.get(skills[i], 0.0)
-				btn.text = sk.get("name", "Skill") if cd <= 0 else "%.1fs" % cd
-				btn.disabled = cd > 0
+				var sid = skills[i]
+				var sk = DataManager.get_skill(sid)
+				var cd = float(u.skill_cooldowns.get(sid, 0.0))
+				var cost = float(sk.get("mana_cost", 15))
+				var nm = sk.get("name", "Skill")
+				if cd > 0.05:
+					btn.text = "%s\n%.1fs" % [nm, cd]
+					btn.disabled = true
+				elif u.mana < cost:
+					btn.text = "%s\nMP %d" % [nm, int(cost)]
+					btn.disabled = true
+				else:
+					btn.text = "%s\n%d MP" % [nm, int(cost)]
+					btn.disabled = false
 			else:
 				btn.text = "-"
 				btn.disabled = true
 
 func _toggle_pause() -> void:
 	if GameManager.current_state == GameManager.GameState.PLAYING:
-		GameManager.pause_game()
+		# Ensure pause overlay still receives input while tree is paused
 		if hud.has_node("PauseMenu"):
-			hud.get_node("PauseMenu").visible = true
+			var pm = hud.get_node("PauseMenu")
+			pm.process_mode = Node.PROCESS_MODE_ALWAYS
+			pm.visible = true
+		if hud:
+			hud.process_mode = Node.PROCESS_MODE_ALWAYS
+		GameManager.pause_game()
 	else:
 		_resume_from_pause()
 
@@ -332,6 +388,9 @@ func _resume_from_pause() -> void:
 	GameManager.resume_game()
 	if hud.has_node("PauseMenu"):
 		hud.get_node("PauseMenu").visible = false
+	# Restore normal process so combat ticks again
+	if hud:
+		hud.process_mode = Node.PROCESS_MODE_INHERIT
 
 func _toggle_auto() -> void:
 	GameManager.auto_battle = not GameManager.auto_battle
@@ -414,7 +473,7 @@ func _on_castle_hp(cur: int, mx: int) -> void:
 		hud.get_node("TopBar/CastleHPBar").max_value = mx
 		hud.get_node("TopBar/CastleHPBar").value = cur
 	if hud.has_node("TopBar/CastleHPLabel"):
-		hud.get_node("TopBar/CastleHPLabel").text = "Castle %d/%d" % [cur, mx]
+		hud.get_node("TopBar/CastleHPLabel").text = "Base %d/%d" % [cur, mx]
 
 func _on_gold_changed(g: int) -> void:
 	if hud.has_node("TopBar/GoldLabel"):

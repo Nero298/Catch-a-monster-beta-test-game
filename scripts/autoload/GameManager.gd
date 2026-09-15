@@ -2,6 +2,7 @@ extends Node
 ## Central game state manager
 
 signal gold_changed(new_amount: int)
+signal gems_changed(new_amount: int)
 signal castle_hp_changed(current: int, max_hp: int)
 signal game_over(won: bool)
 signal monster_caught(monster_data: Dictionary)
@@ -14,6 +15,7 @@ enum GameState { MENU, STARTER_SELECT, PLAYING, PAUSED, RESULT, COLLECTION, SHOP
 var current_mode: GameMode = GameMode.NONE
 var current_state: GameState = GameState.MENU
 var gold: int = 150
+var gems: int = 0
 var castle_max_hp: int = 1000
 var castle_hp: int = 1000
 var current_wave: int = 0
@@ -43,6 +45,17 @@ func add_gold(amount: int) -> void:
 	gold += amount
 	gold_changed.emit(gold)
 
+func add_gems(amount: int) -> void:
+	gems += amount
+	gems_changed.emit(gems)
+
+func spend_gems(amount: int) -> bool:
+	if gems >= amount:
+		gems -= amount
+		gems_changed.emit(gems)
+		return true
+	return false
+
 func spend_gold(amount: int) -> bool:
 	if gold >= amount:
 		gold -= amount
@@ -60,8 +73,20 @@ func heal_castle(amount: int) -> void:
 	castle_hp = min(castle_max_hp, castle_hp + amount)
 	castle_hp_changed.emit(castle_hp, castle_max_hp)
 
+func recalculate_base_hp_from_team() -> void:
+	## Base HP = sum of max_hp of monsters currently in the active team (max 3).
+	var total := 0
+	for m in player_team:
+		if typeof(m) == TYPE_DICTIONARY:
+			total += int(m.get("max_hp", m.get("hp", 100)))
+	if total <= 0:
+		total = 300  # fallback if team empty
+	castle_max_hp = total
+	castle_hp = total
+	castle_hp_changed.emit(castle_hp, castle_max_hp)
+
 func reset_castle() -> void:
-	castle_hp = castle_max_hp
+	recalculate_base_hp_from_team()
 	castle_hp_changed.emit(castle_hp, castle_max_hp)
 
 func set_mode(mode: GameMode) -> void:
@@ -95,6 +120,7 @@ func set_team(team: Array) -> void:
 		if player_team.size() >= 3:
 			break
 		player_team.append(m.duplicate(true))
+	recalculate_base_hp_from_team()
 	SaveManager.save_game()
 
 func set_starter(monster_id: String) -> void:
@@ -104,6 +130,7 @@ func set_starter(monster_id: String) -> void:
 		owned_monsters.append(starter)
 		player_team = [starter.duplicate(true)]
 		has_chosen_starter = true
+		recalculate_base_hp_from_team()
 		SaveManager.save_game()
 
 func add_item(item_id: String, count: int = 1) -> void:

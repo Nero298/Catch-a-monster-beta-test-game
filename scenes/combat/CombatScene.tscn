@@ -79,21 +79,15 @@ offset_right = 1280.0
 offset_bottom = 720.0
 color = Color(0.25, 0.32, 0.2, 0.3)
 [node name="SpawnPoint" type="Marker2D" parent="."]
-position = Vector2(80, 400)
+position = Vector2(1180, 400)
 [node name="PlayerSpawn" type="Marker2D" parent="."]
-position = Vector2(1050, 380)
+position = Vector2(220, 380)
 [node name="Castle" type="Area2D" parent="."]
-position = Vector2(1200, 400)
+position = Vector2(80, 400)
 collision_layer = 8
 collision_mask = 2
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Castle"]
 shape = SubResource("RectCastle")
-[node name="CastleVisual" type="ColorRect" parent="Castle"]
-offset_left = -30.0
-offset_top = -150.0
-offset_right = 30.0
-offset_bottom = 150.0
-color = Color(0.48, 0.43, 0.35, 1)
 [node name="Units" type="Node2D" parent="."]
 
 [node name="HUD" type="CanvasLayer" parent="."]
@@ -265,6 +259,7 @@ offset_bottom = 292.0
 text = "SKIP"
 
 [node name="ResultPanel" type="Panel" parent="HUD"]
+process_mode = 3
 visible = false
 offset_left = 330.0
 offset_top = 142.0
@@ -303,6 +298,7 @@ theme_override_font_sizes/font_size = 18
 text = "MAIN MENU"
 
 [node name="PauseMenu" type="Panel" parent="HUD"]
+process_mode = 3
 visible = false
 offset_left = 415.0
 offset_top = 175.0
